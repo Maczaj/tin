@@ -1,0 +1,3 @@
+/**
+	implementacja modulu obslugi plikow
+**/

@@ -1,0 +1,3 @@
+/**
+	implementacja modulu komunikacji sieciowej
+**/
