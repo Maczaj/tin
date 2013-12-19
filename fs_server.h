@@ -1,11 +1,11 @@
-//==================== REQUESTS ===========================//
-typedef FS_statT int;
+#include <sys/stat.h>
 
-enum FS_cmdT{ close_srv , file_open, file_close , file_read, file_write, file_stat, file_lock, file_lseek};
+//==================== REQUESTS ===========================//
+enum FS_cmdT { close_srv_req , file_open_req, file_close_req , file_read_req, file_write_req, file_stat_req, file_lock_req, file_lseek_req};
 
 struct FS_c_close_srvrT {
 FS_cmdT command;
-}
+};
 
 struct FS_c_open_fileT {
 FS_cmdT command;
@@ -57,8 +57,9 @@ int lock_type; //alias dla mode
 };
 
 //===================== RESPONSES ============================//
-enum FS_resT{ close_srv , file_open, file_close , file_read, file_write, file_stat, file_lock, file_lseek};
+typedef int FS_statT;
 
+enum FS_resT { close_srv_res , file_open_res, file_close_res , file_read_res, file_write_res, file_stat_res, file_lock_res, file_lseek_res};
 
 struct FS_s_open_fileT {
 FS_resT command; //na jaką komende jest to odpowiedź
@@ -102,7 +103,7 @@ FS_statT status;
 
 
 struct FS_s_lock_fileT {
-FS_res command;
+FS_resT command;
 FS_statT status;
 };
 
