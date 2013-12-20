@@ -21,6 +21,7 @@ int fs_close_server(int srvhndl);
 
 /**
 otwarcie konkretnego pliku - ścieżka do pliku podawana przez klienta będzie podlegać translacji na serwerze, które będzie polegało na przekształceniu na ścieżkę bezwględną. Z uwagi na brak uwierzytelniania podłączanych klientów zakłada się brak kontroli praw dostępu, zatem każdy klient będzie w stanie otworzyć każdy plik z dowolną flagą. W odniesieniu do sposobu przekazywania deskryptorów plików, będą przekazywane unikalne wartości nadawne przez aplikacje serwera i będą podlegać mapowaniu na lokalną wartość wykorzystywaną przez danego klienta, który będzie osobnym procesem
+TODO: wpisac tutaj jawnie jakie moga byc flagi!!!
 **/
 int fs_open(int srvhndl, char *name, int flags);
 
@@ -36,6 +37,8 @@ int fs_read(int srvhndl , int fd , void * buf , size_t len);
 
 /**
 przesuwa wskaźnik pliku o zadaną wartość w określonym kierunku
+
+TODO: dac tutaj opis czym jest offset i whence!!!
 **/
 int fs_lseek(int srvhndl, int fd , long offset , int whence);
 
@@ -61,5 +64,7 @@ założenie blokady na pliku. W przypadku powodzenia zwróci 0. Niepowodzenie wy
 -próba założenia blokady READ jeśli jest założona blokada WRITE,
 -próba założenia blokady WRITE jeśli jest już założona inna blokada;
 i będzie sygnalizowane poprzez zwrócenie ujemnej wartości. Informacja o założonych blokadach będzie przechowywana w strukturze opisującej dany plik
+
+TODO: okreslic mozliwe wartosci mode
 **/
 int fs_lock(int srvhndl , int fd , int mode);
