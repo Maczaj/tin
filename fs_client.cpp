@@ -26,6 +26,7 @@ void test2();
 void test3();
 void test4();
 void test5();
+void test6();
 
 //=================== MAIN ========================//
 int main(int argc,char *argv[]){
@@ -181,3 +182,42 @@ void test5(){
 	cout << "OK";
 }
 
+/**
+	writing and reading large file
+*/
+void test6(){
+	cout << "Test case 6: Sending large file (over 4kB)..." << endl;
+	cout << "Step 1. Generate 6kB of data" << endl;
+	
+	srand (time ( NULL ) ) ;
+	
+	char *buffer = new char[6*1024]; //6kB chyba bedzie git
+	
+	for( int i = 0 ; i < (6 * 1024) - 1  ; +i) buffer[i] = (char) rand() % 255;
+	buffer[(6*1024)-1] = '\0';
+	cout << "Step 2. Write 6kB of data" << endl;
+	
+	int fd = fs_open( srvhndl , "random_data" , O_CREATE );
+	assert( fd > 0 );
+	int result = fs_lock( srvhndl, fd, WRITE ) ;
+	assert ( result == 0 );
+	
+	result = fs_write (srvhndl , fd , (void *) buffer , 6*1024);
+	assert (result == 6*1024);
+	
+	cout << "Step 3. Read 6kB of data" << endl;
+	char * new_buffer = new char[6*1024];
+	
+	result = fs_lseek( srvhndl , fd , 0 , SEEK_SET );
+	assert ( result == 0 ) ;
+	result = fs_read ( srvhndl , fd , (void * ) new_buffer , 6*1024 ) ;
+	assert ( result == 6 * 1024 );
+	assert ( !strcmp( buffer , new_buffer ) );
+	
+	delete [] buffer;
+	delete [] new_buffer;
+	
+	fs_close( srvhndl , fd );
+	
+	cout << "OK" << endl;
+}
