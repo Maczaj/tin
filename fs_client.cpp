@@ -1,4 +1,7 @@
 #include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <assert.h>
 #include "fs_libclient.h"
 
@@ -72,7 +75,7 @@ void test2(){
 
 	//jako ze aplikacja dopiero rusza, zapewne nie ma pliku o takim deskryptorze 
 	int result = fs_write( srvhndl , 999999999 , (void *) DATA_FOR_WRITING , strlen(DATA_FOR_WRITING)); 
-	assert ( result == NO_SUCH_FILE_ERROR ):
+	assert ( result == NO_SUCH_FILE_ERROR );
 	
 	int fd = fs_open (srvhndl , FILE_NAME , O_WRITE );
 	assert (fd > 0 );
@@ -85,7 +88,7 @@ void test2(){
 	assert ( result == 0 );
 	
 	result = fs_write (srvhndl , fd , (void *) DATA_FOR_WRITING , strlen(DATA_FOR_WRITING));
-	assert( result == srtlen (DATA_FOR_WRITING) );
+	assert( result == strlen (DATA_FOR_WRITING) );
 
 	fs_close( srvhndl , fd );
 	cout << "OK" << endl;
@@ -100,19 +103,19 @@ void test3(){
 	char buffer[200];
 	
 	//najpierw czytanie z nieistniejacego
-	int result = fs_read ( srvhndl , 999999999 , (void *) buffer , strlen(DATA_FOR_WRITING) ):
+	int result = fs_read ( srvhndl , 999999999 , (void *) buffer , strlen(DATA_FOR_WRITING) );
 	assert (result == NO_SUCH_FILE_ERROR );
 	
 	int fd = fs_open ( srvhndl , FILE_NAME , O_READ );
 	assert ( fd > 0 );
 	
-	result = fs_read ( srvhndl , fd , (void *) buffer , strlen(DATA_FOR_WRITING) ):
+	result = fs_read ( srvhndl , fd , (void *) buffer , strlen(DATA_FOR_WRITING) );
 	assert ( result == NO_LOCK_ERROR ) ;
 	
 	result = fs_lock ( srvhndl , fd , READ );
 	assert ( result == 0 );
 	
-	result = fs_read ( srvhndl , fd , (void *) buffer , strlen(DATA_FOR_WRITING) ):
+	result = fs_read ( srvhndl , fd , (void *) buffer , strlen(DATA_FOR_WRITING) );
 	assert( !strcmp( buffer , DATA_FOR_WRITING ) );
 	
 	fs_close(srvhndl , fd) ;
@@ -125,7 +128,7 @@ void test3(){
 void test4(){
 	cout << "Test case 4: Opening file, reading first characters, moving back to beginning and reading again...";
 	char buffer[50];
-	char secon_buffer[50];
+	char second_buffer[50];
 	
 	int fd = fs_open (srvhndl, FILE_NAME, O_READ );
 	assert (fd > 0);
