@@ -39,7 +39,7 @@ int main(int argc,char *argv[]){
 	test3();
 	test4();
 	test5();
-	
+	test6();	
 	
 	fs_close_server(srvhndl);
 	cout << "Test Suite completed" << endl;

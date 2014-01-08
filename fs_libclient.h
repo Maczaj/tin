@@ -7,6 +7,11 @@ TODO: awesome comment
 
 ****/
 
+//============= STALE ===============================//
+
+
+
+//===============================================//
 
 /**
 tworzy połączenie z serwerem, zwraca uchwyt serwera, który jest jednocześnie desktryptorem gniazda utworzonego do komunikacji, w przypadku niepowodzenia zwróci pewną wartość ujemną, zależną od typu zastniałego błędu
