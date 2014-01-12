@@ -1,10 +1,34 @@
-#include<iostream>
+#include <iostream>
 #include "fs_libclient.h"
+
 using namespace std;
 
 int fs_open_server(char *adres_serwera){
 	cout << "fs_open_server() called" << endl;
-	return -10;
+
+  int sockd;
+  struct sockaddr_in serv_name;
+  int status;
+
+  sockd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockd == -1)
+  {
+    return -errno;
+  }
+
+  /* server address */
+  serv_name.sin_family = AF_INET;
+  inet_aton(argv[1], &serv_name.sin_addr);
+  serv_name.sin_port = htons(atoi(adres_serwera));
+
+  /* connect to the server */
+  status = connect(sockd, (struct sockaddr*)&serv_name, sizeof(serv_name));
+  if (status == -1)
+  {
+    return -errno;
+  }
+
+	return sockd;
 }
 
 int fs_close_server(int srvhndl){
