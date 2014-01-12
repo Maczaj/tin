@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include <assert.h>
 #include "fs_libclient.h"
 
@@ -28,8 +29,20 @@ void test6();
 
 //=================== MAIN ========================//
 int main(int argc,char *argv[]){
+	if( argc == 0 ) {
+		cout << "Server address not specified, aborting execution " << endl;
+		return 2;
+	}	
+	srvaddr = argv[0];	
+	char * result = strstr ( srvaddr , ":" );
+	
+	if( result == NULL || (result + 1) == '\0'){
+		cout << "Port not specified, exiting now... " << endl;
+		return 1;
+	}
+	
 	cout << "Client is running...." << endl;
-	srvaddr = argv[0];
+	
 	srvhndl = fs_open_server(srvaddr);
 
 	test1();
