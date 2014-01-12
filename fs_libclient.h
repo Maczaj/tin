@@ -6,12 +6,12 @@ TODO: awesome comment
 
 
 ****/
-
+#include <fstream>
 //============= STALE ===============================//
 
-#define CREATE 0x0
-#define READ 0x1
-#define WRITE 0x2
+#define CREATE fstream::trunk | fstream::in | fstream::out | fstream::app
+#define READ fstream::in | fstream::app
+#define WRITE fstream::out | fstream::app
 
 #define NO_SUCH_FILE_ERROR -200999
 #define NO_LOCK_ERROR -200998
