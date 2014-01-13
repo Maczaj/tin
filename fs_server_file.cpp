@@ -18,6 +18,25 @@ int hf_open(int pid, int fd, string name, int flags)
 
 	if (flags == CREATE)
 	{
+		lock_mutex.lock();
+
+			for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
+			{
+				if (iter->descriptor == fd)
+				{
+					if (iter->listLock.size() != 0)
+					{
+						cout << "CREATE error caused by:file exist and once of locks ENABLE\n";
+						lock_mutex.unlock();
+						return -1;
+					}
+
+					break;
+				}
+			}
+
+		lock_mutex.unlock();
+
   		streamStructure.stream.open(streamStructure.name.c_str(), fstream::in | fstream::out | fstream::app);
 		cout << "File opened with flag: CREATE\n";
 	}
@@ -85,6 +104,26 @@ int hf_close(int pid, int fd)
 
 int hf_write(int pid, int fd , char * buf , size_t len)
 {
+	lock_mutex.lock();
+
+		for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
+		{
+			if (iter->descriptor == fd)
+			{
+				if (iter->listLock.size() != 0)
+				{
+					cout << "WRITE error caused by:once of locks ENABLE\n";
+					lock_mutex.unlock();
+					return -1;
+				}
+
+				break;
+			}
+		}
+
+
+	lock_mutex.unlock();
+
 	for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
 	{
 		if (iter->descriptor == fd)
@@ -107,6 +146,32 @@ int hf_write(int pid, int fd , char * buf , size_t len)
 
 int hf_read(int pid, int fd , char * buf , size_t len)
 {
+	lock_mutex.lock();
+
+		for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
+		{
+			if (iter->descriptor == fd)
+			{
+				for( list<Lock>::iterator iterLock=iter->listLock.begin(); iterLock != iter->listLock.end(); iterLock++ )
+				{
+					if (iterLock->lockMode == WRITE)
+					{
+						cout << "READ error caused by:WRITE_LOCK ENABLE\n";
+						lock_mutex.unlock();
+						return -1;
+					}
+					
+				}
+
+				break;
+			}
+		}
+
+
+	lock_mutex.unlock();
+
+
+
 	for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
 	{
 		if (iter->descriptor == fd)
@@ -242,18 +307,19 @@ int hf_lseek(int pid, int fd , long offset , int whence)
 int fs_lock(int pid, int fd , int mode)
 {
 	lock_mutex.lock();
-/*
+	int temp = 0;
+
 	if (mode == UNLOCK)
 	{
 		for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
 		{
 			if (iter->descriptor == fd)
 			{
-				for( list<Lock>::iterator iterLock=iter->listLock.begin(); iterLock != listLock.end(); iterLock++ )
+				for( list<Lock>::iterator iterLock=iter->listLock.begin(); iterLock != iter->listLock.end(); iterLock++ )
 				{
 					if (iterLock->lockPID == pid)
 					{
-						listLock.remove(iterLock);
+						iter->listLock.erase(iterLock);
 						cout << "File unlocked for PID:" <<pid <<endl;
 						break;
 					}
@@ -262,17 +328,72 @@ int fs_lock(int pid, int fd , int mode)
 			}
 		}	
 	}
-
-
-	for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
+	else if (mode == READ_LOCK)
 	{
-		if (iter->descriptor == fd)
+		for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
 		{
-			iter->stream.read(buf, len);
-			cout << "Wrote to file with descriptor: " <<fd <<endl;
-		}
+			if (iter->descriptor == fd)
+			{
+				for( list<Lock>::iterator iterLock=iter->listLock.begin(); iterLock != iter->listLock.end(); iterLock++ )
+				{
+					if (iterLock->lockMode == WRITE)
+					{
+						cout << "READ_LOCK error caused by:WRITE LOCK ENABLE\n";
+						return -1;
+					}
+					if (iterLock->lockMode == READ)
+					{
+						if (iterLock->lockPID == pid)
+						{
+							temp = 1;
+							break;
+						}
+					}
+					
+				}
+
+				if (temp)
+				{	
+					cout << "OK\n";
+					return 0;
+				}
+				else
+				{
+					Lock lock;
+					lock.lockMode = READ_LOCK;
+					lock.lockPID = pid;
+					iter->listLock.push_back(lock);
+					cout << "OK\n";
+					return 0;
+				}
+				break;
+			}
+		}	
 	}
-*/
+	else if (mode == WRITE_LOCK)
+	{
+		for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
+		{
+			if (iter->descriptor == fd)
+			{
+				if (iter->listLock.size() != 0)
+				{	
+					cout << "WRITE_LOCK error caused by: another lock ENABLE\n";
+					return -1;
+				}
+				else
+				{
+					Lock lock;
+					lock.lockMode = READ_LOCK;
+					lock.lockPID = pid;
+					iter->listLock.push_back(lock);
+					cout << "OK\n";
+					return 0;
+				}
+				break;
+			}
+		}	
+	}
 
 	lock_mutex.unlock();
 	return 0;
@@ -285,14 +406,14 @@ int main(){
 	//hf_open(3,"a333", WRITE);
 	//hf_open(4,"a444", READWRITE);
 
-	char* buffer = "1234567890";
+	char* buffer = (char *) "1234567890";
 
 	hf_write(1,1 , buffer , sizeof(buffer));
 	struct stat info;
 
-	hf_stat("a111", &info);
+	hf_stat((char *) "a111", &info);
 
-	buffer = "aaaaaa";
+	buffer = (char *) "aaaaaa";
 	hf_lseek(1,1,5,SEEK_BEGIN);
 	hf_write(1,1 , buffer , sizeof(buffer));
 	

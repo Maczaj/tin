@@ -14,6 +14,10 @@
 #define SEEK_CURRENT 2
 #define SEEK_END_FILE 3
 
+#define READ_LOCK 0
+#define WRITE_LOCK 1
+#define UNLOCK 2
+
 
 #define CREATE 1
 #define READ 2
