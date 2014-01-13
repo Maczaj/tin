@@ -9,7 +9,7 @@ TODO: awesome comment
 #include <fstream>
 //============= STALE ===============================//
 
-#define CREATE fstream::trunk | fstream::in | fstream::out | fstream::app
+#define CREATE fstream::in | fstream::out | fstream::app
 #define READ fstream::in | fstream::app
 #define WRITE fstream::out | fstream::app
 
@@ -62,18 +62,18 @@ int fs_close(int srvhndl, int fd);
 
 /**
 pobranie informacji o pliku. Nie wszystkie pola struktury mają sens, zatem poniżej są wymienione tylko te używane przez nas:
-   mode_t    st_mode;    // protection 
-    off_t     st_size;    //total size, in bytes 
-    blksize_t st_blksize; // blocksize for file system I/O 
+   mode_t    st_mode;    // protection
+    off_t     st_size;    //total size, in bytes
+    blksize_t st_blksize; // blocksize for file system I/O
     blkcnt_t  st_blocks;  // number of 512B blocks allocated
-    time_t    st_atime;   // time of last access 
-    time_t    st_mtime;   // time of last modification 
-    time_t    st_ctime;   // time of last status change 
+    time_t    st_atime;   // time of last access
+    time_t    st_mtime;   // time of last modification
+    time_t    st_ctime;   // time of last status change
 **/
 int fs_stat(int srvhndl , int fd, struct stat* buff);
 
 /**
-założenie blokady na pliku. W przypadku powodzenia zwróci 0. Niepowodzenie wystąpi w następujących sytuacjach: 
+założenie blokady na pliku. W przypadku powodzenia zwróci 0. Niepowodzenie wystąpi w następujących sytuacjach:
 -próba założenia blokady READ jeśli jest założona blokada WRITE,
 -próba założenia blokady WRITE jeśli jest już założona inna blokada;
 i będzie sygnalizowane poprzez zwrócenie ujemnej wartości. Informacja o założonych blokadach będzie przechowywana w strukturze opisującej dany plik
