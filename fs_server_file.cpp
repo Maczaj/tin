@@ -1,14 +1,16 @@
 #include "fs_server_file.h"
 using namespace std;
 
+list<Files> fileList;
+mutex lock_mutex;
 
 int hf_open(int pid, int fd, string name, int flags)
 {
-	
+
 
 	Files file;
 	file.descriptor = fd;
-	
+
 
 	FileStream streamStructure;
 
@@ -74,7 +76,7 @@ int hf_open(int pid, int fd, string name, int flags)
 
 	file.listStream.push_back(streamStructure);
 	fileList.push_back(file);
-	
+
 	return 0;
 }
 
@@ -89,12 +91,12 @@ int hf_close(int pid, int fd)
 				if (iterStream->PID == pid)
 				{
 					iterStream->stream.close();
-					cout <<"Stream closed for PID: " <<pid <<" and FILE: "<<fd <<endl;  
+					cout <<"Stream closed for PID: " <<pid <<" and FILE: "<<fd <<endl;
 					break;
-				}	
+				}
 			}
 
-		
+
 
 		}
 	}
@@ -132,11 +134,11 @@ int hf_write(int pid, int fd , char * buf , size_t len)
 			{
 				if (iterStream->PID == pid)
 				{
-					
+
 					iterStream->stream.write(buf, len);
-					cout << "Wrote to file with descriptor: " <<fd <<" and PID: "<<pid <<endl;  
+					cout << "Wrote to file with descriptor: " <<fd <<" and PID: "<<pid <<endl;
 					break;
-				}	
+				}
 			}
 		}
 	}
@@ -160,7 +162,7 @@ int hf_read(int pid, int fd , char * buf , size_t len)
 						lock_mutex.unlock();
 						return -1;
 					}
-					
+
 				}
 
 				break;
@@ -180,11 +182,11 @@ int hf_read(int pid, int fd , char * buf , size_t len)
 			{
 				if (iterStream->PID == pid)
 				{
-					
+
 					iterStream->stream.read(buf, len);
-					cout << "Read file with descriptor: " <<fd <<" and PID: "<<pid <<endl;  
+					cout << "Read file with descriptor: " <<fd <<" and PID: "<<pid <<endl;
 					break;
-				}	
+				}
 			}
 		}
 	}
@@ -206,7 +208,7 @@ int hf_stat(char * fn, struct stat* buff)
       			perror("fstat() error");
 		}
    		 else {
-			
+
      			cout<<"fstat() returned:\n";
      			cout <<"Mode:\t\t\t"<<buff->st_mode <<endl;
       			cout <<"Size:\t\t\t"<<buff->st_size <<endl;
@@ -234,7 +236,7 @@ int hf_lseek(int pid, int fd , long offset , int whence)
 			{
 				if (iterStream->PID == pid)
 				{
-					
+
 					if(iterStream->flags == READ)
 					{
 						if(whence == SEEK_BEGIN)
@@ -245,8 +247,8 @@ int hf_lseek(int pid, int fd , long offset , int whence)
 								return -1;
 							}
 							iterStream->stream.seekg(offset,ios_base::beg);
-							cout << "Cursor set on pozistion: " <<iterStream->stream.tellg() 		<<endl;				
-						}				
+							cout << "Cursor set on pozistion: " <<iterStream->stream.tellg() 		<<endl;
+						}
 						else if(whence == SEEK_CURRENT)
 						{
 							iterStream->stream.seekg(offset,ios_base::cur);
@@ -292,10 +294,10 @@ int hf_lseek(int pid, int fd , long offset , int whence)
 						}
 					}
 					break;
-				}	
+				}
 			}
 
-	
+
 		}
 	}
 
@@ -324,9 +326,9 @@ int fs_lock(int pid, int fd , int mode)
 						break;
 					}
 				}
-				
+
 			}
-		}	
+		}
 	}
 	else if (mode == READ_LOCK)
 	{
@@ -349,11 +351,11 @@ int fs_lock(int pid, int fd , int mode)
 							break;
 						}
 					}
-					
+
 				}
 
 				if (temp)
-				{	
+				{
 					cout << "OK\n";
 					return 0;
 				}
@@ -368,7 +370,7 @@ int fs_lock(int pid, int fd , int mode)
 				}
 				break;
 			}
-		}	
+		}
 	}
 	else if (mode == WRITE_LOCK)
 	{
@@ -377,7 +379,7 @@ int fs_lock(int pid, int fd , int mode)
 			if (iter->descriptor == fd)
 			{
 				if (iter->listLock.size() != 0)
-				{	
+				{
 					cout << "WRITE_LOCK error caused by: another lock ENABLE\n";
 					return -1;
 				}
@@ -392,35 +394,35 @@ int fs_lock(int pid, int fd , int mode)
 				}
 				break;
 			}
-		}	
+		}
 	}
 
 	lock_mutex.unlock();
 	return 0;
 }
-int main(){
-	
-	cout << "Server is running...." << endl;
-	hf_open(1,1,"a111", CREATE);
-	//hf_open(2,"a222", READ);
-	//hf_open(3,"a333", WRITE);
-	//hf_open(4,"a444", READWRITE);
+// int main(){
 
-	char* buffer = (char *) "1234567890";
+// 	cout << "Server is running...." << endl;
+// 	hf_open(1,1,"a111", CREATE);
+// 	//hf_open(2,"a222", READ);
+// 	//hf_open(3,"a333", WRITE);
+// 	//hf_open(4,"a444", READWRITE);
 
-	hf_write(1,1 , buffer , sizeof(buffer));
-	struct stat info;
+// 	char* buffer = (char *) "1234567890";
 
-	hf_stat((char *) "a111", &info);
+// 	hf_write(1,1 , buffer , sizeof(buffer));
+// 	struct stat info;
 
-	buffer = (char *) "aaaaaa";
-	hf_lseek(1,1,5,SEEK_BEGIN);
-	hf_write(1,1 , buffer , sizeof(buffer));
-	
+// 	hf_stat((char *) "a111", &info);
 
-	hf_close(1,1);
-	//hf_close(2);
-	//hf_close(3);
-	//hf_close(4);
-	return 0;
-}
+// 	buffer = (char *) "aaaaaa";
+// 	hf_lseek(1,1,5,SEEK_BEGIN);
+// 	hf_write(1,1 , buffer , sizeof(buffer));
+
+
+// 	hf_close(1,1);
+// 	//hf_close(2);
+// 	//hf_close(3);
+// 	//hf_close(4);
+// 	return 0;
+// }

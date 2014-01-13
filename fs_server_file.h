@@ -30,8 +30,6 @@
 #define LOCKING_NOT_POSSIBLE_ERROR -200997
 using namespace std;
 
-mutex lock_mutex;
-
 struct Lock {
 	int lockMode;
 	int lockPID;
@@ -46,7 +44,7 @@ struct Lock {
 };
 
 struct FileStream {
-	
+
 	int PID;
 	int flags;
 	string name;
@@ -89,7 +87,7 @@ struct FileStream {
 
 struct Files {
 	int descriptor;
-	
+
 	list<Lock> listLock;
 	list<FileStream> listStream;
 
@@ -97,11 +95,11 @@ struct Files {
 	{
 	}
 
-	Files (const Files &obj) 
+	Files (const Files &obj)
 	{
 
    		this->descriptor = obj.descriptor;
-		
+
 		this->listLock = obj.listLock;
 		//this->listStream = obj.listStream;
 		for(  list<FileStream>::const_iterator iter=obj.listStream.begin(); iter != obj.listStream.end(); iter++ )
@@ -113,7 +111,7 @@ struct Files {
 };
 
 
-list<Files> fileList;
+
 
 int hf_open(int pid, int fd,std::string name, int flags);
 
