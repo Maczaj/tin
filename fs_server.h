@@ -2,7 +2,8 @@
 #define FS_SERVER 1
 
 #include <sys/stat.h>
-#include <string>
+// #include <string>
+#include <string.h>
 
 #ifndef BOOST_ARCHIVE_TEXT_IARCHIVE_HPP
 #include <boost/archive/text_oarchive.hpp>
@@ -76,13 +77,26 @@ typedef struct FS_c_stat_fileT {
 typedef struct FS_c_write_fileT {
   friend class boost::serialization::access;
   template<class Archive>
-  void serialize(Archive & ar, const unsigned int version)
+  void save(Archive & ar, const unsigned int version) const
   {
     ar & command;
     ar & fd;
     ar & len;
-    ar & data;
+    for (int index = 0; index < len; ++index)
+        ar & ((unsigned char *)data)[index];
   }
+  template<class Archive>
+  void load(Archive & ar, const unsigned int version)
+  {
+      ar & command;
+      ar & fd;
+      ar & len;
+      data = new char[len];
+      for (int index = 0; index < len; ++index)
+          ar & ((unsigned char *)data)[index];
+      ((unsigned char *)data)[len] = 0;
+  }
+  BOOST_SERIALIZATION_SPLIT_MEMBER()
   FS_cmdT command;
   int fd;
   size_t len; //wielkość danych do zapisania

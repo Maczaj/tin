@@ -12,58 +12,90 @@
 #include <boost/archive/text_iarchive.hpp>
 
 #include "fs_server.h"
-
-
-/* Preprocessor Directives */
+#include "fs_server_file.h"
 
 #define NTHREADS 50
 #define QUEUE_SIZE 5
 #define BUFFER_SIZE 256
 
-
-
 pthread_t threadid[NTHREADS]; // Thread pool
-// pthread_mutex_t lock;
-// int counter = 0;
+pthread_mutex_t lockTid;
+int tid = 0;
 
-FS_s_open_fileT* handleFileOpen(int sockfd, char* buffer){
-  FS_c_open_fileT newg;
+int handleOpenFile(int sockfd, char* recievedSerializedStruct) {
+  FS_c_open_fileT recievedStruct;
   {
-      // create and open an archive for input
-      std::stringstream iss;
-      std::string string(buffer);
-      iss.str(string);
-      boost::archive::text_iarchive ia(iss);
-      // read class state from archive
-      ia >> newg;
-      // archive and stream closed when destructors are called
+    std::string string(recievedSerializedStruct);
+    std::stringstream inputStringStream(string);
+    boost::archive::text_iarchive inputArchive(inputStringStream);
+    inputArchive >> recievedStruct;
   }
-  std::cout << "\nopenfile >>> " << newg.name << " " << newg.flags << std::endl;
-  //printf("New message received: %s", buffer);
-  buffer--;
-  bzero(buffer, BUFFER_SIZE);
-  // sprintf(buffer, "Acknowledgement from TID:0x%x", (unsigned int)pthread_self());
-  FS_c_open_fileT responseStruct;
-  std::stringstream oss;
+  std::cout << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << std::endl;
+  //printf("New message received: %s", recievedSerializedStruct);
+  recievedSerializedStruct--;
+  bzero(recievedSerializedStruct, BUFFER_SIZE);
+
+  hf_open(tid, 1, recievedStruct.name, recievedStruct.flags);
+
+  FS_s_open_fileT responseStruct;
+
+  responseStruct.command = FILE_OPEN_RES;
+  responseStruct.fd = 1; //
+
+  std::stringstream outputStringStream;
   {
-    boost::archive::text_oarchive oa(oss);
+    boost::archive::text_oarchive oa(outputStringStream);
     oa << responseStruct;
   }
 
-  //prepare command+serializedStruct to char*
-  std::string s = oss.str();
-  // const char* serializedStruct = s.c_str();
-  sprintf(buffer, "%s", s.c_str());
-
-  // int rw = write(sockfd, buffer, strlen(buffer));
-  int rw = write(sockfd, "OK!\n", 5);
+  int rw = write(sockfd, (char *)outputStringStream.str().c_str(), outputStringStream.str().length());
 
   if (rw < 0)
   {
     perror("Error writing to socket, exiting thread");
     pthread_exit(0);
   }
-  // return resultToClient;
+  // return ok;
+}
+
+int handleWriteFile(int sockfd, char* recievedSerializedStruct) {
+  FS_c_write_fileT recievedStruct;
+  {
+    std::string string(recievedSerializedStruct);
+    std::stringstream inputStringStream(string);
+    boost::archive::text_iarchive inputArchive(inputStringStream);
+    inputArchive >> recievedStruct;
+  }
+  // std::cout << "\nwritefile >>> " << recievedStruct.name << " " << recievedStruct.flags << std::endl;
+  //printf("New message received: %s", recievedSerializedStruct);
+  recievedSerializedStruct--;
+  bzero(recievedSerializedStruct, BUFFER_SIZE);
+
+  cout << recievedStruct.fd << " " << (unsigned char *)recievedStruct.data << " " << " " << recievedStruct.len;
+  // int status = hf_write(tid, recievedStruct.fd, (char *)recievedStruct.data, recievedStruct.len);
+
+  // hf_write(int pid, int fd , char * buf , size_t len);
+
+  FS_s_write_fileT responseStruct;
+
+  responseStruct.command = FILE_WRITE_RES;
+  responseStruct.status = 44;
+  responseStruct.written_len = 222;
+
+  std::stringstream outputStringStream;
+  {
+    boost::archive::text_oarchive oa(outputStringStream);
+    oa << responseStruct;
+  }
+
+  int rw = write(sockfd, (char *)outputStringStream.str().c_str(), outputStringStream.str().length());
+
+  if (rw < 0)
+  {
+    perror("Error writing to socket, exiting thread");
+    pthread_exit(0);
+  }
+  // return ok;
 }
 
 void* threadworker(void *arg)
@@ -72,67 +104,80 @@ void* threadworker(void *arg)
   int sockfd, rw; // File descriptor and 'read/write' to socket indicator
   char *buffer; // Message buffer
   sockfd = (int) arg; // Getting sockfd from void arg passed in
+  bool closeServer = false;
 
   buffer = (char *)malloc(BUFFER_SIZE);
   bzero(buffer, BUFFER_SIZE);
 
-  rw = read(sockfd, buffer, BUFFER_SIZE);
+  pthread_mutex_lock (&lockTid);
+  printf("Current tid value: %d, upping by 1...\n", tid);
+  tid++;
+  pthread_mutex_unlock (&lockTid);
 
-  int command = (int)buffer[0] - 48;
+  //petla oczekujaca na kolejne komendy
+  while(1) {
 
-  std::cout << command << std::endl;
+    rw = read(sockfd, buffer, BUFFER_SIZE);
 
-  buffer++;
+    int command = (int)buffer[0] - 48;
 
-  switch (command) {
-    case FILE_OPEN_REQ:
-    {
-      FS_s_open_fileT *resultToClient;
-      resultToClient = handleFileOpen(sockfd, buffer);
+    std::cout << "command >" << command << "<" << std::endl;
 
-      break;
-    }
-    case FILE_CLOSE_REQ:
-    {
-      FS_c_close_fileT newg;
+    buffer++;
+
+    switch (command) {
+      case FILE_OPEN_REQ:
       {
-          // create and open an archive for input
-          std::stringstream iss;
-          std::string string(buffer);
-          iss.str(string);
-          boost::archive::text_iarchive ia(iss);
-          // read class state from archive
-          ia >> newg;
-          // archive and stream closed when destructors are called
+        handleOpenFile(sockfd, buffer);
+        break;
       }
-      std::cout << "\nclosefile >>> " << newg.fd << std::endl;
-      printf("New message received: %s", buffer);
-      buffer--;
-      bzero(buffer, BUFFER_SIZE);
-      // sprintf(buffer, "Acknowledgement from TID:0x%x", (unsigned int)pthread_self());
-
-      rw = write(sockfd, buffer, strlen(buffer));
-
-      if (rw < 0)
+      case FILE_CLOSE_REQ:
       {
-      perror("Error writing to socket, exiting thread");
+
+        break;
+      }
+      case FILE_READ_REQ:
+      {
+
+        break;
+      }
+      case FILE_WRITE_REQ:
+      {
+        handleWriteFile(sockfd, buffer);
+        break;
+      }
+      case FILE_STAT_REQ:
+      {
+
+        break;
+      }
+      case FILE_LOCK_REQ:
+      {
+
+        break;
+      }
+      case FILE_LSEEK_REQ:
+      {
+
+        break;
+      }
+      case CLOSE_SRV_REQ:
+      {
+        closeServer = true;
+        break;
+      }
+    }
+
+    if (rw < 0)
+    {
+      perror("Error reading form socket, exiting thread");
       pthread_exit(0);
-      }
-
+    }
+    if (closeServer)
+    {
       break;
     }
   }
-
-
-
-  // write(sockfd, "OK!", 4);
-
-  if (rw < 0)
-  {
-    perror("Error reading form socket, exiting thread");
-    pthread_exit(0);
-  }
-
 
   close(sockfd);
   printf("TID:0x%x served request, exiting thread\n", (unsigned int)pthread_self());
@@ -227,4 +272,3 @@ int start(char *argv[])
 
   return 0;
 }
-
