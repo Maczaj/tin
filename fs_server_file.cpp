@@ -1,15 +1,16 @@
 #include "fs_server_file.h"
+#include <cstring>
 using namespace std;
 
 list<Files> fileList;
 mutex lock_mutex;
 
-int hf_open(int pid, int fd, string name, int flags)
+int hf_open(int pid, string name, int flags)
 {
 
 
 	Files file;
-	file.descriptor = fd;
+	
 
 
 	FileStream streamStructure;
@@ -24,7 +25,7 @@ int hf_open(int pid, int fd, string name, int flags)
 
 			for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
 			{
-				if (iter->descriptor == fd)
+				if (iter->name == name)
 				{
 					if (iter->listLock.size() != 0)
 					{
@@ -37,10 +38,20 @@ int hf_open(int pid, int fd, string name, int flags)
 				}
 			}
 
-		lock_mutex.unlock();
 
-  		streamStructure.stream.open(streamStructure.name.c_str(), fstream::in | fstream::out | fstream::app);
-		cout << "File opened with flag: CREATE\n";
+			
+  			streamStructure.stream.open(streamStructure.name.c_str(), fstream::in | fstream::out | fstream::trunc);
+		
+			file.descriptor = fileList.size() +1;
+			file.name = name;
+			file.listStream.push_back(streamStructure);
+			fileList.push_back(file);
+			cout << "File opened with flag: CREATE\t FD: "<<file.descriptor<<endl;
+
+		lock_mutex.unlock();
+		return file.descriptor;
+
+
 	}
 	else if (flags == READ)
 	{
@@ -49,24 +60,101 @@ int hf_open(int pid, int fd, string name, int flags)
 		if(!streamStructure.stream.is_open())
 		{
 			cout<< "File to read does not exist\n";
-			return -2;
+			return -200999;
 		}
-		cout << "File opened with flag: READ\n";
+		
+		for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
+			{
+				if (iter->name == name)
+				{
+					iter->listStream.push_back(streamStructure);
+					cout << "File opened with flag: READ FD: "<<iter->descriptor<<endl;
+					return iter->descriptor;
+				}
+		}
+		
 	}
 	else if (flags == WRITE)
 	{
 		streamStructure.stream.open(streamStructure.name.c_str(), fstream::out);
-		cout << "File opened with flag: WRITE\n";
+
+		lock_mutex.lock();
+
+			for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
+			{
+				if (iter->name == name)
+				{
+					iter->listStream.push_back(streamStructure);
+					cout << "File opened with flag: WRITE\n";
+					lock_mutex.unlock();
+					return iter->descriptor;
+			
+				}
+			}
+
+			file.descriptor = fileList.size() +1;
+			file.name = name;
+			file.listStream.push_back(streamStructure);
+			fileList.push_back(file);
+
+		lock_mutex.unlock();
+		return file.descriptor;
+			
+
 	}
 	else if (flags == READWRITE)
 	{
 		streamStructure.stream.open(streamStructure.name.c_str(), fstream::in | fstream::out | fstream::app);
-		cout << "File opened with flags: READ and WRITE\n";
+
+		lock_mutex.lock();
+
+			for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
+			{
+				if (iter->name == name)
+				{
+					iter->listStream.push_back(streamStructure);
+					cout << "File opened with flags: READ and WRITE\n";
+					lock_mutex.unlock();
+					return iter->descriptor;
+			
+				}
+			}
+
+			file.descriptor = fileList.size() +1;
+			file.name = name;
+			file.listStream.push_back(streamStructure);
+			fileList.push_back(file);
+
+		lock_mutex.unlock();
+		return file.descriptor;
+		
 	}
 	else if (flags == APPEND)
 	{
 		streamStructure.stream.open(streamStructure.name.c_str(), fstream::app);
-		cout << "File opened with flags: APPEND\n";
+
+		lock_mutex.lock();
+
+			for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
+			{
+				if (iter->name == name)
+				{
+					iter->listStream.push_back(streamStructure);
+					cout << "File opened with flags: APPEND\n";
+					lock_mutex.unlock();
+					return iter->descriptor;
+			
+				}
+			}
+
+			file.descriptor = fileList.size() +1;
+			file.name = name;
+			file.listStream.push_back(streamStructure);
+			fileList.push_back(file);
+
+		lock_mutex.unlock();
+		return file.descriptor;
+		
 	}
 	else
 	{
@@ -74,8 +162,7 @@ int hf_open(int pid, int fd, string name, int flags)
 		return -1;
 	}
 
-	file.listStream.push_back(streamStructure);
-	fileList.push_back(file);
+
 
 	return 0;
 }
@@ -91,6 +178,7 @@ int hf_close(int pid, int fd)
 				if (iterStream->PID == pid)
 				{
 					iterStream->stream.close();
+					iter->listStream.erase(iterStream);
 					cout <<"Stream closed for PID: " <<pid <<" and FILE: "<<fd <<endl;
 					break;
 				}
@@ -112,38 +200,46 @@ int hf_write(int pid, int fd , char * buf , size_t len)
 		{
 			if (iter->descriptor == fd)
 			{
-				if (iter->listLock.size() != 0)
+				for(list<Lock>::iterator iterLock=iter->listLock.begin(); iterLock != iter->listLock.end(); iterLock++)
 				{
-					cout << "WRITE error caused by:once of locks ENABLE\n";
-					lock_mutex.unlock();
-					return -1;
+					if (iterLock->lockPID != pid)
+					{
+						cout << "WRITE error caused by:once of locks ENABLE\n";
+						lock_mutex.unlock();
+						return -1;
+					}
+					else
+					{
+						if (iterLock->lockMode == READ_LOCK)
+						{
+							cout << "WRITE error caused by:READ_LOCK ENABLE\n";
+							lock_mutex.unlock();
+							return -200998;
+						}
+						else if (iterLock->lockMode == WRITE_LOCK)
+						{
+							for( list<FileStream>::iterator iterStream=iter->listStream.begin(); iterStream != iter->listStream.end(); iterStream++ )
+							{
+								if (iterStream->PID == pid)
+								{
+									iterStream->stream.write(buf, len);
+									cout << "Wrote to file with descriptor: " <<fd <<" and PID: "<<pid <<endl;
+									lock_mutex.unlock();
+									return 0;
+								}
+							}
+						}
+					}
 				}
 
 				break;
 			}
 		}
 
-
+	cout << "Missing WRITE_LOCK\n";
 	lock_mutex.unlock();
-
-	for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
-	{
-		if (iter->descriptor == fd)
-		{
-			for( list<FileStream>::iterator iterStream=iter->listStream.begin(); iterStream != iter->listStream.end(); iterStream++ )
-			{
-				if (iterStream->PID == pid)
-				{
-
-					iterStream->stream.write(buf, len);
-					cout << "Wrote to file with descriptor: " <<fd <<" and PID: "<<pid <<endl;
-					break;
-				}
-			}
-		}
-	}
-
-	return 0;
+	
+	return -200998;
 }
 
 int hf_read(int pid, int fd , char * buf , size_t len)
@@ -156,11 +252,28 @@ int hf_read(int pid, int fd , char * buf , size_t len)
 			{
 				for( list<Lock>::iterator iterLock=iter->listLock.begin(); iterLock != iter->listLock.end(); iterLock++ )
 				{
-					if (iterLock->lockMode == WRITE)
+					if (iterLock->lockMode == WRITE_LOCK)
 					{
-						cout << "READ error caused by:WRITE_LOCK ENABLE\n";
+						cout << "READ error caused by:WRITE_LOCK ENABLE PID: "<<pid<<endl;;
 						lock_mutex.unlock();
-						return -1;
+						return -200998;
+					}
+					else if (iterLock->lockMode == READ_LOCK)
+					{
+						if (iterLock->lockPID == pid)
+						{
+							for( list<FileStream>::iterator iterStream=iter->listStream.begin(); iterStream != iter->listStream.end(); iterStream++ )
+							{
+				
+								if (iterStream->PID == pid)
+								{
+  				        				iterStream->stream.read (buf,len);
+									cout << "Read file with descriptor: " <<fd <<" and PID: "<<pid <<endl;
+									lock_mutex.unlock();
+									return 0;
+								}
+							}
+						}
 					}
 
 				}
@@ -169,29 +282,9 @@ int hf_read(int pid, int fd , char * buf , size_t len)
 			}
 		}
 
-
+	cout << "Missing READ_LOCK\n";
 	lock_mutex.unlock();
-
-
-
-	for( list<Files>::iterator iter=fileList.begin(); iter != fileList.end(); iter++ )
-	{
-		if (iter->descriptor == fd)
-		{
-			for( list<FileStream>::iterator iterStream=iter->listStream.begin(); iterStream != iter->listStream.end(); iterStream++ )
-			{
-				if (iterStream->PID == pid)
-				{
-
-					iterStream->stream.read(buf, len);
-					cout << "Read file with descriptor: " <<fd <<" and PID: "<<pid <<endl;
-					break;
-				}
-			}
-		}
-	}
-
-	return 0;
+	return -200998;
 }
 
 
@@ -201,11 +294,15 @@ int hf_stat(char * fn, struct stat* buff)
   	int fd;
 
   	if ((fd = creat(fn, S_IWUSR)) < 0)
+	{
     		perror("creat() error");
+		return -1;
+	}
   	else {
     		if (fstat(fd, buff) != 0)
 		{
       			perror("fstat() error");
+			return -1;
 		}
    		 else {
 
@@ -248,6 +345,7 @@ int hf_lseek(int pid, int fd , long offset , int whence)
 							}
 							iterStream->stream.seekg(offset,ios_base::beg);
 							cout << "Cursor set on pozistion: " <<iterStream->stream.tellg() 		<<endl;
+							
 						}
 						else if(whence == SEEK_CURRENT)
 						{
@@ -297,11 +395,11 @@ int hf_lseek(int pid, int fd , long offset , int whence)
 				}
 			}
 
-
+			return 0;
 		}
 	}
 
-	return 0;
+	return -200999;
 }
 
 
@@ -338,12 +436,12 @@ int fs_lock(int pid, int fd , int mode)
 			{
 				for( list<Lock>::iterator iterLock=iter->listLock.begin(); iterLock != iter->listLock.end(); iterLock++ )
 				{
-					if (iterLock->lockMode == WRITE)
+					if (iterLock->lockMode == WRITE_LOCK)
 					{
 						cout << "READ_LOCK error caused by:WRITE LOCK ENABLE\n";
-						return -1;
+						return -200997;
 					}
-					if (iterLock->lockMode == READ)
+					if (iterLock->lockMode == READ_LOCK)
 					{
 						if (iterLock->lockPID == pid)
 						{
@@ -356,7 +454,8 @@ int fs_lock(int pid, int fd , int mode)
 
 				if (temp)
 				{
-					cout << "OK\n";
+					cout << "READ_LOCK enable for PID: "<<pid<<endl;
+					lock_mutex.unlock();
 					return 0;
 				}
 				else
@@ -365,10 +464,11 @@ int fs_lock(int pid, int fd , int mode)
 					lock.lockMode = READ_LOCK;
 					lock.lockPID = pid;
 					iter->listLock.push_back(lock);
-					cout << "OK\n";
+					cout << "READ_LOCK enable for PID: "<<pid<<endl;
+					lock_mutex.unlock();
 					return 0;
 				}
-				break;
+
 			}
 		}
 	}
@@ -381,48 +481,81 @@ int fs_lock(int pid, int fd , int mode)
 				if (iter->listLock.size() != 0)
 				{
 					cout << "WRITE_LOCK error caused by: another lock ENABLE\n";
-					return -1;
+					lock_mutex.unlock();
+					return -200997;
 				}
 				else
 				{
 					Lock lock;
-					lock.lockMode = READ_LOCK;
+					lock.lockMode = WRITE_LOCK;
 					lock.lockPID = pid;
 					iter->listLock.push_back(lock);
-					cout << "OK\n";
+					cout << "WRITE_LOCK enable for PID: "<<pid<<endl;
+					lock_mutex.unlock();
 					return 0;
 				}
-				break;
 			}
 		}
 	}
 
 	lock_mutex.unlock();
-	return 0;
+	return 200999;
 }
-// int main(){
 
-// 	cout << "Server is running...." << endl;
-// 	hf_open(1,1,"a111", CREATE);
+ int main(){
+
+ 	cout << "Server is running...." << endl;
+
+	int fd;
+ 	fd = hf_open(1,"a111", CREATE);
+
 // 	//hf_open(2,"a222", READ);
 // 	//hf_open(3,"a333", WRITE);
 // 	//hf_open(4,"a444", READWRITE);
+ 	//struct stat info;
 
-// 	char* buffer = (char *) "1234567890";
-
-// 	hf_write(1,1 , buffer , sizeof(buffer));
-// 	struct stat info;
-
-// 	hf_stat((char *) "a111", &info);
-
-// 	buffer = (char *) "aaaaaa";
-// 	hf_lseek(1,1,5,SEEK_BEGIN);
-// 	hf_write(1,1 , buffer , sizeof(buffer));
+ 	//hf_stat((char *) "a111", &info);
 
 
-// 	hf_close(1,1);
+ 	char* buffer = (char *) "1234567890";
+	fs_lock(1, fd , WRITE_LOCK);
+	hf_write(1,fd , buffer , strlen(buffer));
+	fs_lock(1, fd , UNLOCK);
+	hf_close(1,fd);
+
+	char* bufread = (char*)calloc(1024,sizeof(char));
+	
+	
+	
+ 	
+	//hf_close(1,fd);
+	fd = hf_open(2,"a111", READ);
+	fs_lock(1, fd , READ_LOCK);
+	//hf_read(2, fd , bufread , strlen(bufread));
+
+ 	//buffer = (char *) "aaaaaa";
+ 	//hf_lseek(1,fd,5,SEEK_BEGIN);
+ 	//hf_write(1,1 , buffer , strlen(buffer));
+
+	//hf_write(2,1 , buffer , strlen(buffer));
+
+	fs_lock(2,fd , READ_LOCK);
+	
+
+	//fs_lock(2,fd , READ_LOCK);
+	//hf_read(2, fd , bufread , strlen(bufread));
+	//fs_lock(1,fd , READ_LOCK);
+
+	//fs_lock(3,fd , WRITE_LOCK);
+	hf_lseek(2, fd , 3 , SEEK_BEGIN);
+
+
+	hf_read(2, fd , bufread ,5 );
+	
+	cout<<bufread<<endl;
+ 	hf_close(2,fd);
 // 	//hf_close(2);
 // 	//hf_close(3);
 // 	//hf_close(4);
 // 	return 0;
-// }
+ }

@@ -87,7 +87,7 @@ struct FileStream {
 
 struct Files {
 	int descriptor;
-
+	string name;
 	list<Lock> listLock;
 	list<FileStream> listStream;
 
@@ -99,7 +99,7 @@ struct Files {
 	{
 
    		this->descriptor = obj.descriptor;
-
+		this->name = obj.name;
 		this->listLock = obj.listLock;
 		//this->listStream = obj.listStream;
 		for(  list<FileStream>::const_iterator iter=obj.listStream.begin(); iter != obj.listStream.end(); iter++ )
