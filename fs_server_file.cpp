@@ -177,19 +177,26 @@ int hf_close(int pid, int fd)
 			{
 				if (iterStream->PID == pid)
 				{
+					if (!iterStream->stream.is_open())
+					{
+						cout << "Stream already closed"<<endl;
+						return -1;
+					}
 					iterStream->stream.close();
 					iter->listStream.erase(iterStream);
 					cout <<"Stream closed for PID: " <<pid <<" and FILE: "<<fd <<endl;
-					break;
+					return 0;
 				}
 			}
 
+			cout <<  "File STREAM does not exist for this user"<<endl;
+			return -2;
 
 
 		}
 	}
-
-	return 0;
+	cout << "File does not exist"<<endl;
+	return -200999;
 }
 
 int hf_write(int pid, int fd , char * buf , size_t len)
@@ -508,50 +515,24 @@ int fs_lock(int pid, int fd , int mode)
 
 	int fd;
  	fd = hf_open(1,"a111", CREATE);
-
-// 	//hf_open(2,"a222", READ);
-// 	//hf_open(3,"a333", WRITE);
-// 	//hf_open(4,"a444", READWRITE);
- 	//struct stat info;
-
- 	//hf_stat((char *) "a111", &info);
-
-
  	char* buffer = (char *) "1234567890";
 	fs_lock(1, fd , WRITE_LOCK);
 	hf_write(1,fd , buffer , strlen(buffer));
-	fs_lock(1, fd , UNLOCK);
+	//fs_lock(1, fd , UNLOCK);
 	hf_close(1,fd);
 
 	char* bufread = (char*)calloc(1024,sizeof(char));
 	
-	
-	
- 	
-	//hf_close(1,fd);
 	fd = hf_open(2,"a111", READ);
-	fs_lock(1, fd , READ_LOCK);
-	//hf_read(2, fd , bufread , strlen(bufread));
-
- 	//buffer = (char *) "aaaaaa";
- 	//hf_lseek(1,fd,5,SEEK_BEGIN);
- 	//hf_write(1,1 , buffer , strlen(buffer));
-
-	//hf_write(2,1 , buffer , strlen(buffer));
 
 	fs_lock(2,fd , READ_LOCK);
-	
+	hf_lseek(2, fd , 3 , SEEK_BEGIN);
+	hf_read(2, fd , bufread ,5 );
+	//fs_lock(1, fd , UNLOCK);
 
 	//fs_lock(2,fd , READ_LOCK);
-	//hf_read(2, fd , bufread , strlen(bufread));
-	//fs_lock(1,fd , READ_LOCK);
-
-	//fs_lock(3,fd , WRITE_LOCK);
-	hf_lseek(2, fd , 3 , SEEK_BEGIN);
-
-
-	hf_read(2, fd , bufread ,5 );
-	
+	//hf_lseek(2, fd , 3 , SEEK_BEGIN);
+	//hf_read(2, fd , bufread ,5 );
 	cout<<bufread<<endl;
  	hf_close(2,fd);
 // 	//hf_close(2);
