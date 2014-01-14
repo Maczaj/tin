@@ -17,6 +17,8 @@
 
 #include "fs_server.h"
 
+#define MAX_SIZE 596
+
 using namespace std;
 
 // concat command, as char, at index 0 and serializedStruct from index 1
@@ -78,6 +80,7 @@ int fs_close_server(int srvhndl){
   char* bufferToSend = concatCommandAndSerializedStruct(outputStringStream.str().c_str(), requestStruct.command);
 
   //send struct to server
+  cout << "HEJ TY: ." << bufferToSend << "." << endl;
   if (write(srvhndl, bufferToSend, strlen(bufferToSend)) == -1)
     perror("writing on stream socket");
 
@@ -106,18 +109,18 @@ int fs_open(int srvhndl, char *name, int flags){
   char* bufferToSend = concatCommandAndSerializedStruct(outputStringStream.str().c_str(), requestStruct.command);
 
   // send request
+    cout << "HEJ TY2: ." << bufferToSend << "." << endl;
   if (write(srvhndl, bufferToSend, strlen(bufferToSend)) == -1)
     perror("writing on stream socket");
 
   delete [] bufferToSend;
 
   //read response
-  const int MAX_BUF = 4096;
-  char *inputSerializedStruct = new char [MAX_BUF];
-  memset(inputSerializedStruct, 0, MAX_BUF);
+  char *inputSerializedStruct = new char [MAX_SIZE];
+  memset(inputSerializedStruct, 0, MAX_SIZE);
 
-  read(srvhndl, inputSerializedStruct, MAX_BUF);
-
+  read(srvhndl, inputSerializedStruct, MAX_SIZE);
+  cout << "response ." << inputSerializedStruct << "." << endl;
   // deserialize response from string to struct
   FS_s_open_fileT response;
   {
@@ -131,7 +134,7 @@ int fs_open(int srvhndl, char *name, int flags){
   delete [] inputSerializedStruct;
 
   // unpack request struct
-
+// cout << "ASDFASDFDASFFADSFADSFADSFDAD " << response.fd;
   return response.fd;
 }
 
@@ -144,13 +147,13 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
 
   int bytesSent = 0;
   int bytesToSend = 0;
-  const int MAX_BUF = 4096+256;
+  const int MAX_BUF = MAX_SIZE+256;
   char *inputSerializedStruct = new char [MAX_BUF];
   char *bufPart;
   std::stringstream outputStringStream;
+  int status = 0;
 
-
-  const int packLength = 4096;
+  const int packLength = MAX_SIZE;
   cout << len << endl;
   while (bytesSent < len) {
     bytesToSend = (len-bytesSent >= packLength ? packLength : len-bytesSent + 1) -1;
@@ -161,7 +164,7 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
     memset(bufPart, 0, packLength);
 
     memcpy(bufPart, ((char *)buf) + bytesSent, bytesToSend);
-    cout << "bufPart >" << bufPart << "<" << endl;
+    // cout << "bufPart >" << bufPart << "<" << endl;
     bufPart[bytesToSend] = '\0';
     requestStruct.data = bufPart;
 
@@ -176,9 +179,10 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
         concatCommandAndSerializedStruct(outputStringStream.str().c_str(),
             requestStruct.command);
 
-    cout << "bufferToSend >" << bufferToSend << "<" << endl;
+    // cout << "bufferToSend >" << bufferToSend << "<" << endl;
 
     // send request
+      cout << "HEJ TYYYYYYYYYYYYY: ." << bufferToSend << "." << endl;
     if (write(srvhndl, bufferToSend, strlen(bufferToSend)) == -1)
       perror("writing on stream socket");
 
@@ -199,9 +203,10 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
         ia >> response;
     }
 
-
     bytesSent += bytesToSend;
-    cout << "XAXA " << bytesSent << " " << len << " " << response.status << endl;
+
+    status = response.status;
+    // cout << "XAXA " << bytesSent << " " << len << " " << response.status << endl;
     delete [] bufferToSend;
     bufferToSend = 0;
   }
@@ -209,15 +214,7 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
   delete [] inputSerializedStruct;
   inputSerializedStruct = 0;
 
-  cout << "response:" << endl;
-  // cout << response.status << endl;
-  // cout << response.written_len << endl;
-
-  // unpack request struct
-
-  // return response.;
-
-  // return response.status;
+  return status;
 }
 
 int fs_read(int srvhndl , int fd , void * buf , size_t len){
@@ -227,7 +224,81 @@ int fs_read(int srvhndl , int fd , void * buf , size_t len){
   FS_c_read_fileT requestStruct;
   requestStruct.command = FILE_READ_REQ;
   requestStruct.fd = fd;
-  requestStruct.len = len;
+
+  int bytesReceived = 0;
+  int bytesToReceive = 0;
+  const int MAX_BUF = MAX_SIZE+256;
+  char *inputSerializedStruct = new char [MAX_BUF];
+  char *bufPart;
+  std::stringstream outputStringStream;
+  int status = 0;
+
+  const int packLength = MAX_SIZE;
+  cout << len << endl;
+  while (bytesReceived < len) {
+    cout << ">>>> " << bytesToReceive << " " << bytesReceived;
+    bytesToReceive = (len-bytesReceived >= packLength ? packLength : len-bytesReceived + 1) -1;
+
+    requestStruct.len = bytesToReceive;
+
+    // serialize struct to stringstream
+    std::stringstream outputStringStream;
+    {
+      boost::archive::text_oarchive oa(outputStringStream);
+      oa << requestStruct;
+    }
+
+    char* bufferToSend = concatCommandAndSerializedStruct(outputStringStream.str().c_str(), requestStruct.command);
+
+    // send request
+      cout << "HEJ TY5: ." << bufferToSend << "." << endl;
+    if (write(srvhndl, bufferToSend, strlen(bufferToSend)) == -1)
+      perror("writing on stream socket");
+
+    delete [] bufferToSend;
+
+    //read response
+    char *inputSerializedStruct = new char [MAX_SIZE];
+    memset(inputSerializedStruct, 0, MAX_SIZE);
+
+    read(srvhndl, inputSerializedStruct, MAX_SIZE);
+    cout << "response ." << inputSerializedStruct << "." << endl;
+    // deserialize response from string to struct
+    FS_s_read_fileT response;
+    {
+        std::string string(inputSerializedStruct);
+        std::stringstream inputStringStream(string);
+        // create and open an archive for input
+        boost::archive::text_iarchive ia(inputStringStream);
+        // read class state from archive
+        ia >> response;
+    }
+
+    status = response.status;
+
+    if (status < 0) {
+      return status;
+    }
+    strcat((char*)buf, (char*)response.data);
+    delete [] (unsigned char*)response.data;
+    bytesReceived += bytesToReceive;
+  }
+
+  delete [] inputSerializedStruct;
+
+
+  return status;
+}
+
+int fs_lseek(int srvhndl, int fd , long offset , int whence){
+  cout << "fs_lseek() called" << endl;
+
+  // pack request struct
+  FS_c_lseek_fileT requestStruct;
+  requestStruct.command = FILE_LSEEK_REQ;
+  requestStruct.fd = fd;
+  requestStruct.offset = offset;
+  requestStruct.whence = whence;
 
   // serialize struct to stringstream
   std::stringstream outputStringStream;
@@ -239,48 +310,78 @@ int fs_read(int srvhndl , int fd , void * buf , size_t len){
   char* bufferToSend = concatCommandAndSerializedStruct(outputStringStream.str().c_str(), requestStruct.command);
 
   // send request
+    cout << "HEJ TY2: ." << bufferToSend << "." << endl;
   if (write(srvhndl, bufferToSend, strlen(bufferToSend)) == -1)
     perror("writing on stream socket");
 
   delete [] bufferToSend;
 
-  //read response TTTTTOOOODDDDDOOOO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-  const int MAX_BUF = 4096;
-  char *inputSerializedStruct = new char [MAX_BUF];
-  memset(inputSerializedStruct, 0, MAX_BUF);
+  //read response
+  char *inputSerializedStruct = new char [MAX_SIZE];
+  memset(inputSerializedStruct, 0, MAX_SIZE);
 
-  read(srvhndl, inputSerializedStruct, MAX_BUF);
-
+  read(srvhndl, inputSerializedStruct, MAX_SIZE);
+  cout << "response ." << inputSerializedStruct << "." << endl;
   // deserialize response from string to struct
-  FS_s_read_fileT response;
+  FS_s_lseek_fileT response;
   {
       std::string string(inputSerializedStruct);
       std::stringstream inputStringStream(string);
+      // create and open an archive for input
       boost::archive::text_iarchive ia(inputStringStream);
+      // read class state from archive
       ia >> response;
   }
   delete [] inputSerializedStruct;
 
-  cout << "response:" << endl;
-  cout << response.status << endl;
-  cout << response.read_len << endl;
-  cout << response.data << endl;
-
-
-  // unpack request struct
-  memcpy(buf, response.data, strlen((char *)response.data));
-
   return response.status;
-}
-
-int fs_lseek(int srvhndl, int fd , long offset , int whence){
-  cout << "fs_lseek() called" << endl;
-  return -10;
 }
 
 int fs_close(int srvhndl, int fd){
   cout << "fs_close() called" << endl;
-  return -10;
+
+  // pack request struct
+  FS_c_close_fileT requestStruct;
+  requestStruct.command = FILE_CLOSE_REQ;
+  requestStruct.fd = fd;
+
+  // serialize struct to stringstream
+  std::stringstream outputStringStream;
+  {
+    boost::archive::text_oarchive oa(outputStringStream);
+    oa << requestStruct;
+  }
+
+  char* bufferToSend = concatCommandAndSerializedStruct(outputStringStream.str().c_str(), requestStruct.command);
+
+  // send request
+    cout << "HEJ TY5: ." << bufferToSend << "." << endl;
+  if (write(srvhndl, bufferToSend, strlen(bufferToSend)) == -1)
+    perror("writing on stream socket");
+
+  delete [] bufferToSend;
+
+  //read response
+  char *inputSerializedStruct = new char [MAX_SIZE];
+  memset(inputSerializedStruct, 0, MAX_SIZE);
+
+  read(srvhndl, inputSerializedStruct, MAX_SIZE);
+  cout << "response ." << inputSerializedStruct << "." << endl;
+  // deserialize response from string to struct
+  FS_s_close_fileT response;
+  {
+      std::string string(inputSerializedStruct);
+      std::stringstream inputStringStream(string);
+      // create and open an archive for input
+      boost::archive::text_iarchive ia(inputStringStream);
+      // read class state from archive
+      ia >> response;
+  }
+  delete [] inputSerializedStruct;
+
+  // unpack request struct
+// cout << "ASDFASDFDASFFADSFADSFADSFDAD " << response.fd;
+  return response.status;
 }
 
 int fs_stat(int srvhndl , int fd, struct stat* buff){
@@ -290,5 +391,46 @@ int fs_stat(int srvhndl , int fd, struct stat* buff){
 
 int fs_lock(int srvhndl , int fd , int mode){
   cout << "fs_lock() called" << endl;
-  return -10;
+
+  // pack request struct
+  FS_c_lock_fileT requestStruct;
+  requestStruct.command = FILE_LOCK_REQ;
+  requestStruct.fd = fd;
+  requestStruct.lock_type = mode;
+
+  // serialize struct to stringstream
+  std::stringstream outputStringStream;
+  {
+    boost::archive::text_oarchive oa(outputStringStream);
+    oa << requestStruct;
+  }
+
+  char* bufferToSend = concatCommandAndSerializedStruct(outputStringStream.str().c_str(), requestStruct.command);
+
+  // send request
+    cout << "HEJ TY4: ." << bufferToSend << "." << endl;
+  if (write(srvhndl, bufferToSend, strlen(bufferToSend)) == -1)
+    perror("writing on stream socket");
+
+  delete [] bufferToSend;
+
+  //read response
+  char *inputSerializedStruct = new char [MAX_SIZE];
+  memset(inputSerializedStruct, 0, MAX_SIZE);
+
+  read(srvhndl, inputSerializedStruct, MAX_SIZE);
+  cout << "response ." << inputSerializedStruct << "." << endl;
+  // deserialize response from string to struct
+  FS_s_lock_fileT response;
+  {
+      std::string string(inputSerializedStruct);
+      std::stringstream inputStringStream(string);
+      // create and open an archive for input
+      boost::archive::text_iarchive ia(inputStringStream);
+      // read class state from archive
+      ia >> response;
+  }
+  delete [] inputSerializedStruct;
+
+  return response.status;
 }

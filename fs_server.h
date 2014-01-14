@@ -83,9 +83,10 @@ typedef struct FS_c_write_fileT {
     ar & command;
     ar & fd;
     ar & len;
-    for (int index = 0; index < strlen((char *)data); ++index){
-      ar & ((char *)data)[index];
+    for (int index = 0; index < len; ++index){
+      ar & ((unsigned char *)data)[index];
     }
+    // std::cout << "save>>>>>>>>" << strlen((char *)data) << "<<<<<<<<" << std::endl;
   }
   template<class Archive>
   void load(Archive & ar, const unsigned int version)
@@ -93,9 +94,10 @@ typedef struct FS_c_write_fileT {
     ar & command;
     ar & fd;
     ar & len;
-    data = new unsigned char[len];
+    data = new unsigned char[len+1];
     for (int index = 0; index < len; ++index)
       ar & ((unsigned char *)data)[index];
+    // std::cout << "load>>>>>>>>" << strlen((char *)data) << "<<<<<<<<" << std::endl;
     ((unsigned char *)data)[len] = 0;
   }
   BOOST_SERIALIZATION_SPLIT_MEMBER()
@@ -238,7 +240,7 @@ typedef struct FS_s_read_fileT {
     ar & command;
     ar & status;
     ar & read_len;
-    data = new unsigned char[read_len];
+    data = new unsigned char[read_len+1];
     for (int index = 0; index < read_len; ++index)
       ar & ((unsigned char *)data)[index];
     ((unsigned char *)data)[read_len] = 0;

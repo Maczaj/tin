@@ -9,9 +9,19 @@ TODO: awesome comment
 #include <fstream>
 //============= STALE ===============================//
 
-#define CREATE fstream::in | fstream::out | fstream::app
-#define READ fstream::in | fstream::app
-#define WRITE fstream::out | fstream::app
+// #define CREATE fstream::in | fstream::out | fstream::app
+// #define READ fstream::in | fstream::app
+// #define WRITE fstream::out | fstream::app
+
+#define READ_LOCK 0
+#define WRITE_LOCK 1
+#define UNLOCK 2
+
+#define CREATE 1
+#define READ 2
+#define WRITE 3
+#define READWRITE 4
+#define APPEND 5
 
 #define NO_SUCH_FILE_ERROR -200999
 #define NO_LOCK_ERROR -200998
