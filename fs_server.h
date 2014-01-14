@@ -22,6 +22,7 @@ enum FS_cmdT {
   FILE_LSEEK_REQ
 };
 
+//CLOSE_SRV_REQ
 typedef struct FS_c_close_srvrT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -32,7 +33,7 @@ typedef struct FS_c_close_srvrT {
   FS_cmdT command;
 } FS_c_close_srvrT;
 
-
+//FILE_OPEN_REQ
 typedef struct FS_c_open_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -47,7 +48,7 @@ typedef struct FS_c_open_fileT {
   int flags;
 } FS_c_open_fileT;
 
-
+//FILE_CLOSE_REQ
 typedef struct FS_c_close_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -60,7 +61,7 @@ typedef struct FS_c_close_fileT {
   int fd;
 } FS_c_close_fileT;
 
-
+//FILE_STAT_REQ
 typedef struct FS_c_stat_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -73,7 +74,7 @@ typedef struct FS_c_stat_fileT {
   int fd;
 } FS_c_stat_fileT;
 
-
+//FILE_WRITE_REQ
 typedef struct FS_c_write_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -82,19 +83,20 @@ typedef struct FS_c_write_fileT {
     ar & command;
     ar & fd;
     ar & len;
-    for (int index = 0; index < len; ++index)
-        ar & ((unsigned char *)data)[index];
+    for (int index = 0; index < strlen((char *)data); ++index){
+      ar & ((char *)data)[index];
+    }
   }
   template<class Archive>
   void load(Archive & ar, const unsigned int version)
   {
-      ar & command;
-      ar & fd;
-      ar & len;
-      data = new char[len];
-      for (int index = 0; index < len; ++index)
-          ar & ((unsigned char *)data)[index];
-      ((unsigned char *)data)[len] = 0;
+    ar & command;
+    ar & fd;
+    ar & len;
+    data = new unsigned char[len];
+    for (int index = 0; index < len; ++index)
+      ar & ((unsigned char *)data)[index];
+    ((unsigned char *)data)[len] = 0;
   }
   BOOST_SERIALIZATION_SPLIT_MEMBER()
   FS_cmdT command;
@@ -103,7 +105,7 @@ typedef struct FS_c_write_fileT {
   void * data; //dane do zapisania w pliku
 } FS_c_write_fileT;
 
-
+//FILE_READ_REQ
 typedef struct FS_c_read_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -118,7 +120,7 @@ typedef struct FS_c_read_fileT {
   size_t len;
 } FS_c_read_fileT;
 
-
+//FILE_LSEEK_REQ
 typedef struct FS_c_lseek_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -135,7 +137,7 @@ typedef struct FS_c_lseek_fileT {
   int whence;
 } FS_c_lseek_fileT;
 
-
+//FILE_LOCK_REQ
 typedef struct FS_c_lock_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -163,6 +165,7 @@ enum FS_resT {
   FILE_LSEEK_RES
 };
 
+//FILE_OPEN_RES
 typedef struct FS_s_open_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -175,7 +178,7 @@ typedef struct FS_s_open_fileT {
   int fd; //deskryptor pliku lub wartość ujemna w przypadku niepowodzenia
 } FS_s_open_fileT;
 
-
+//FILE_CLOSE_RES
 typedef struct FS_s_close_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -188,7 +191,7 @@ typedef struct FS_s_close_fileT {
   FS_statT status;
 } FS_s_close_fileT;
 
-
+//FILE_STAT_RES
 typedef struct FS_s_stat_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -202,7 +205,7 @@ typedef struct FS_s_stat_fileT {
   struct stat buf; //bufor na dane o pliku
 } FS_s_stat_fileT;
 
-
+//FILE_WRITE_RES
 typedef struct FS_s_write_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -217,24 +220,37 @@ typedef struct FS_s_write_fileT {
   size_t written_len; //ilość faktycznie zapisanych danych
 } FS_s_write_fileT;
 
-
+//FILE_READ_RES
 typedef struct FS_s_read_fileT {
   friend class boost::serialization::access;
   template<class Archive>
-  void serialize(Archive & ar, const unsigned int version)
+  void save(Archive & ar, const unsigned int version) const
   {
     ar & command;
     ar & status;
     ar & read_len;
-    ar & data;
+    for (int index = 0; index < read_len; ++index)
+      ar & ((unsigned char *)data)[index];
   }
+  template<class Archive>
+  void load(Archive & ar, const unsigned int version)
+  {
+    ar & command;
+    ar & status;
+    ar & read_len;
+    data = new unsigned char[read_len];
+    for (int index = 0; index < read_len; ++index)
+      ar & ((unsigned char *)data)[index];
+    ((unsigned char *)data)[read_len] = 0;
+  }
+  BOOST_SERIALIZATION_SPLIT_MEMBER()
   FS_resT command;
   FS_statT status;
   size_t read_len; //ilość faktycznie odczytanych danych
   void * data; //bufor na dane do odczytu
 } FS_s_read_fileT;
 
-
+//FILE_LSEEK_RES
 typedef struct FS_s_lseek_fileT {
   friend class boost::serialization::access;
   template<class Archive>
@@ -247,7 +263,7 @@ typedef struct FS_s_lseek_fileT {
   FS_statT status;
 } FS_s_lseek_fileT;
 
-
+//FILE_LOCK_RES
 typedef struct FS_s_lock_fileT {
   friend class boost::serialization::access;
   template<class Archive>

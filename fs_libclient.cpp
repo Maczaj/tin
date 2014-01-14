@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <string.h>
+#include <cstring>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -21,8 +21,8 @@ using namespace std;
 
 // concat command, as char, at index 0 and serializedStruct from index 1
 char* concatCommandAndSerializedStruct(const char* outputSerializedStruct, FS_cmdT command) {
-  char *bufferToSend = new char[strlen(outputSerializedStruct)];
-  memset(bufferToSend, 0, strlen(outputSerializedStruct));
+  char *bufferToSend = new char[strlen(outputSerializedStruct)+2];
+  memset(bufferToSend, 0, strlen(outputSerializedStruct)+2);
   bufferToSend[0] = command + 48;
   strcat(bufferToSend, outputSerializedStruct);
   return bufferToSend;
@@ -138,12 +138,96 @@ int fs_open(int srvhndl, char *name, int flags){
 int fs_write(int srvhndl , int fd , void * buf , size_t len){
   cout << "fs_write() called" << endl;
 
-  // pack request struct
   FS_c_write_fileT requestStruct;
   requestStruct.command = FILE_WRITE_REQ;
   requestStruct.fd = fd;
+
+  int bytesSent = 0;
+  int bytesToSend = 0;
+  const int MAX_BUF = 4096+256;
+  char *inputSerializedStruct = new char [MAX_BUF];
+  char *bufPart;
+  std::stringstream outputStringStream;
+
+
+  const int packLength = 4096;
+  cout << len << endl;
+  while (bytesSent < len) {
+    bytesToSend = (len-bytesSent >= packLength ? packLength : len-bytesSent + 1) -1;
+    // pack request struct
+    requestStruct.len = bytesToSend;
+    cout << "bytesToSend " << bytesToSend << endl;
+    bufPart = new char [packLength];
+    memset(bufPart, 0, packLength);
+
+    memcpy(bufPart, ((char *)buf) + bytesSent, bytesToSend);
+    cout << "bufPart >" << bufPart << "<" << endl;
+    bufPart[bytesToSend] = '\0';
+    requestStruct.data = bufPart;
+
+    // serialize struct to stringstream
+    outputStringStream.str("");
+    {
+      boost::archive::text_oarchive oa(outputStringStream);
+      oa << requestStruct;
+    }
+
+    char* bufferToSend =
+        concatCommandAndSerializedStruct(outputStringStream.str().c_str(),
+            requestStruct.command);
+
+    cout << "bufferToSend >" << bufferToSend << "<" << endl;
+
+    // send request
+    if (write(srvhndl, bufferToSend, strlen(bufferToSend)) == -1)
+      perror("writing on stream socket");
+
+    delete [] bufPart;
+    bufPart = 0;
+    //read response
+
+    memset(inputSerializedStruct, 0, MAX_BUF);
+
+    read(srvhndl, inputSerializedStruct, MAX_BUF);
+
+    // deserialize response from string to struct
+    FS_s_write_fileT response;
+    {
+        std::string string(inputSerializedStruct);
+        std::stringstream inputStringStream(string);
+        boost::archive::text_iarchive ia(inputStringStream);
+        ia >> response;
+    }
+
+
+    bytesSent += bytesToSend;
+    cout << "XAXA " << bytesSent << " " << len << " " << response.status << endl;
+    delete [] bufferToSend;
+    bufferToSend = 0;
+  }
+
+  delete [] inputSerializedStruct;
+  inputSerializedStruct = 0;
+
+  cout << "response:" << endl;
+  // cout << response.status << endl;
+  // cout << response.written_len << endl;
+
+  // unpack request struct
+
+  // return response.;
+
+  // return response.status;
+}
+
+int fs_read(int srvhndl , int fd , void * buf , size_t len){
+  cout << "fs_read() called" << endl;
+
+  // pack request struct
+  FS_c_read_fileT requestStruct;
+  requestStruct.command = FILE_READ_REQ;
+  requestStruct.fd = fd;
   requestStruct.len = len;
-  requestStruct.data = buf;
 
   // serialize struct to stringstream
   std::stringstream outputStringStream;
@@ -160,7 +244,7 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
 
   delete [] bufferToSend;
 
-  //read response
+  //read response TTTTTOOOODDDDDOOOO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
   const int MAX_BUF = 4096;
   char *inputSerializedStruct = new char [MAX_BUF];
   memset(inputSerializedStruct, 0, MAX_BUF);
@@ -168,7 +252,7 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
   read(srvhndl, inputSerializedStruct, MAX_BUF);
 
   // deserialize response from string to struct
-  FS_s_write_fileT response;
+  FS_s_read_fileT response;
   {
       std::string string(inputSerializedStruct);
       std::stringstream inputStringStream(string);
@@ -179,18 +263,14 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
 
   cout << "response:" << endl;
   cout << response.status << endl;
-  cout << response.written_len << endl;
+  cout << response.read_len << endl;
+  cout << response.data << endl;
+
 
   // unpack request struct
+  memcpy(buf, response.data, strlen((char *)response.data));
 
-  // return response.;
-
-  return -10;
-}
-
-int fs_read(int srvhndl , int fd , void * buf , size_t len){
-  cout << "fs_read() called" << endl;
-  return -10;
+  return response.status;
 }
 
 int fs_lseek(int srvhndl, int fd , long offset , int whence){

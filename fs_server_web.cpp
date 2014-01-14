@@ -16,7 +16,9 @@
 
 #define NTHREADS 50
 #define QUEUE_SIZE 5
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 4096
+
+using namespace std;
 
 pthread_t threadid[NTHREADS]; // Thread pool
 pthread_mutex_t lockTid;
@@ -30,17 +32,17 @@ int handleOpenFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  std::cout << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << std::endl;
+  cout << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
   //printf("New message received: %s", recievedSerializedStruct);
-  recievedSerializedStruct--;
-  bzero(recievedSerializedStruct, BUFFER_SIZE);
+  // recievedSerializedStruct--;
+  // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
-  hf_open(tid, 1, recievedStruct.name, recievedStruct.flags);
+  int fd = hf_open(tid, 1, recievedStruct.name, recievedStruct.flags);
 
   FS_s_open_fileT responseStruct;
 
   responseStruct.command = FILE_OPEN_RES;
-  responseStruct.fd = 1; //
+  responseStruct.fd = fd;
 
   std::stringstream outputStringStream;
   {
@@ -68,19 +70,19 @@ int handleWriteFile(int sockfd, char* recievedSerializedStruct) {
   }
   // std::cout << "\nwritefile >>> " << recievedStruct.name << " " << recievedStruct.flags << std::endl;
   //printf("New message received: %s", recievedSerializedStruct);
-  recievedSerializedStruct--;
-  bzero(recievedSerializedStruct, BUFFER_SIZE);
+  // recievedSerializedStruct--;
+  // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
-  cout << recievedStruct.fd << " " << (unsigned char *)recievedStruct.data << " " << " " << recievedStruct.len;
-  // int status = hf_write(tid, recievedStruct.fd, (char *)recievedStruct.data, recievedStruct.len);
+  cout << recievedStruct.fd << " ." << (char *)recievedStruct.data << ". " << recievedStruct.len << endl;
+  int status = hf_write(tid, recievedStruct.fd, (char *)recievedStruct.data, recievedStruct.len);
 
-  // hf_write(int pid, int fd , char * buf , size_t len);
+  // delete [] (unsigned char *)recievedStruct.data;
 
   FS_s_write_fileT responseStruct;
 
   responseStruct.command = FILE_WRITE_RES;
-  responseStruct.status = 44;
-  responseStruct.written_len = 222;
+  responseStruct.status = status;
+  responseStruct.written_len = strlen((char *)recievedStruct.data);
 
   std::stringstream outputStringStream;
   {
@@ -98,6 +100,10 @@ int handleWriteFile(int sockfd, char* recievedSerializedStruct) {
   // return ok;
 }
 
+int handleReadFile(int sockfd, char* recievedSerializedStruct) {
+  //
+}
+
 void* threadworker(void *arg)
 {
 
@@ -106,7 +112,8 @@ void* threadworker(void *arg)
   sockfd = (int) arg; // Getting sockfd from void arg passed in
   bool closeServer = false;
 
-  buffer = (char *)malloc(BUFFER_SIZE);
+  // buffer = (char *)malloc(BUFFER_SIZE);
+  buffer = new char [BUFFER_SIZE];
   bzero(buffer, BUFFER_SIZE);
 
   pthread_mutex_lock (&lockTid);
@@ -116,57 +123,70 @@ void* threadworker(void *arg)
 
   //petla oczekujaca na kolejne komendy
   while(1) {
-
+    memset(buffer, 0, BUFFER_SIZE);
     rw = read(sockfd, buffer, BUFFER_SIZE);
 
     int command = (int)buffer[0] - 48;
-
-    std::cout << "command >" << command << "<" << std::endl;
-
+    cout << "Request : >" << buffer << "<" <<endl;
     buffer++;
 
     switch (command) {
       case FILE_OPEN_REQ:
       {
+        cout << "command FILE_OPEN_REQ received" << endl;
         handleOpenFile(sockfd, buffer);
         break;
       }
       case FILE_CLOSE_REQ:
       {
-
+        cout << "command FILE_CLOSE_REQ received" << endl;
+        // handleWriteFile(sockfd, buffer);
         break;
       }
       case FILE_READ_REQ:
       {
-
+        cout << "command FILE_READ_REQ received" << endl;
+        handleReadFile(sockfd, buffer);
         break;
       }
       case FILE_WRITE_REQ:
       {
+        cout << "command FILE_WRITE_REQ received" << endl;
         handleWriteFile(sockfd, buffer);
         break;
       }
       case FILE_STAT_REQ:
       {
-
+        cout << "command FILE_STAT_REQ received" << endl;
+        // handleWriteFile(sockfd, buffer);
         break;
       }
       case FILE_LOCK_REQ:
       {
-
+        cout << "command FILE_LOCK_REQ received" << endl;
+        // handleWriteFile(sockfd, buffer);
         break;
       }
       case FILE_LSEEK_REQ:
       {
-
+        cout << "command FILE_LSEEK_REQ received" << endl;
+        // handleWriteFile(sockfd, buffer);
         break;
       }
       case CLOSE_SRV_REQ:
       {
+        cout << endl << "command CLOSE_SRV_REQ received" << endl;
         closeServer = true;
         break;
       }
+      default:
+      {
+        cout << "unknown command received!!!" << endl;
+        cout << "closing server!!!" << endl;
+        closeServer = true;
+      }
     }
+    buffer--;
 
     if (rw < 0)
     {
@@ -178,6 +198,8 @@ void* threadworker(void *arg)
       break;
     }
   }
+
+  delete [] buffer;
 
   close(sockfd);
   printf("TID:0x%x served request, exiting thread\n", (unsigned int)pthread_self());
