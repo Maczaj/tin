@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <cstdint> //do rzutowania na intptr_t
 
 #include <sstream>
 
@@ -32,14 +33,14 @@ int handleOpenFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  cout << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
+  BOOST_LOG_TRIVIAL(info) << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
   //printf("New message received: %s", recievedSerializedStruct);
   // recievedSerializedStruct--;
   // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
-  cout << "XA1" << endl;
+  BOOST_LOG_TRIVIAL(info) << "XA1" << endl;
   int fd = hf_open(tid, *(new string(recievedStruct.name)), recievedStruct.flags);
-cout << fd << " XA2" << endl;
+BOOST_LOG_TRIVIAL(info) << fd << " XA2" << endl;
   FS_s_open_fileT responseStruct;
 
   responseStruct.command = FILE_OPEN_RES;
@@ -62,7 +63,7 @@ cout << fd << " XA2" << endl;
 }
 
 int handleWriteFile(int sockfd, char* recievedSerializedStruct) {
-  cout << "handleWriteFile" << endl;
+  BOOST_LOG_TRIVIAL(info) << "handleWriteFile" << endl;
   FS_c_write_fileT recievedStruct;
   {
     std::string string(recievedSerializedStruct);
@@ -70,12 +71,12 @@ int handleWriteFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  // std::cout << "\nwritefile >>> " << recievedStruct.name << " " << recievedStruct.flags << std::endl;
+  // std::BOOST_LOG_TRIVIAL(info) << "\nwritefile >>> " << recievedStruct.name << " " << recievedStruct.flags << std::endl;
   //printf("New message received: %s", recievedSerializedStruct);
   // recievedSerializedStruct--;
   // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
-  cout << recievedStruct.fd << " ." <</* (char *)recievedStruct.data << */". " << recievedStruct.len << endl;
+  BOOST_LOG_TRIVIAL(info) << recievedStruct.fd << " ." <</* (char *)recievedStruct.data << */". " << recievedStruct.len << endl;
   int status = hf_write(tid, recievedStruct.fd, (char *)recievedStruct.data, recievedStruct.len);
 
   delete [] (unsigned char *)recievedStruct.data;
@@ -93,7 +94,7 @@ int handleWriteFile(int sockfd, char* recievedSerializedStruct) {
   }
 
   int rw = write(sockfd, (char *)outputStringStream.str().c_str(), outputStringStream.str().length());
-  cout << "hej JA!" << endl;
+  BOOST_LOG_TRIVIAL(info) << "hej JA!" << endl;
 
   if (rw < 0)
   {
@@ -111,15 +112,15 @@ int handleLockFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  // cout << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
+  // BOOST_LOG_TRIVIAL(info) << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
   //printf("New message received: %s", recievedSerializedStruct);
   // recievedSerializedStruct--;
   // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
-  cout << "XA1" << endl;
+  BOOST_LOG_TRIVIAL(info) << "XA1" << endl;
   // int fd = hf_open(tid, *(new string(recievedStruct.name)), recievedStruct.flags);
   int status = fs_lock(tid, recievedStruct.fd , recievedStruct.lock_type);
-cout << status << " XA2" << endl;
+BOOST_LOG_TRIVIAL(info) << status << " XA2" << endl;
   FS_s_lock_fileT responseStruct;
 
   responseStruct.command = FILE_OPEN_RES;
@@ -149,15 +150,15 @@ int handleCloseFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  // cout << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
+  // BOOST_LOG_TRIVIAL(info) << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
   //printf("New message received: %s", recievedSerializedStruct);
   // recievedSerializedStruct--;
   // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
-  cout << "XA1" << endl;
+  BOOST_LOG_TRIVIAL(info) << "XA1" << endl;
   // int fd = hf_open(tid, *(new string(recievedStruct.name)), recievedStruct.flags);
   int status = hf_close(tid, recievedStruct.fd);
-cout << status << " XA2" << endl;
+BOOST_LOG_TRIVIAL(info) << status << " XA2" << endl;
   FS_s_close_fileT responseStruct;
 
   responseStruct.command = FILE_CLOSE_RES;
@@ -187,25 +188,25 @@ int handleReadFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  // cout << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
+  // BOOST_LOG_TRIVIAL(info) << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
   //printf("New message received: %s", recievedSerializedStruct);
   // recievedSerializedStruct--;
   // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
-  cout << "XA1" << endl;
+  BOOST_LOG_TRIVIAL(info) << "XA1" << endl;
   // int fd = hf_open(tid, *(new string(recievedStruct.name)), recievedStruct.flags);
 
   char* bufFile = new char [recievedStruct.len+1];
   memset(bufFile, 0, recievedStruct.len+1);
   int status = hf_read(tid, recievedStruct.fd, bufFile, recievedStruct.len);
 
-  cout << status << " XA2" << endl;
+  BOOST_LOG_TRIVIAL(info) << status << " XA2" << endl;
   FS_s_read_fileT responseStruct;
 
   responseStruct.command = FILE_READ_RES;
   responseStruct.status = status;
   responseStruct.data = bufFile;
-  cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << recievedStruct.len << ". ." << strlen(bufFile) << ". " << endl;
+  BOOST_LOG_TRIVIAL(info) << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << recievedStruct.len << ". ." << strlen(bufFile) << ". " << endl;
   responseStruct.read_len = recievedStruct.len;
 
   std::stringstream outputStringStream;
@@ -233,14 +234,14 @@ int handleLseekFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  // cout << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
+  // BOOST_LOG_TRIVIAL(info) << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
   //printf("New message received: %s", recievedSerializedStruct);
   // recievedSerializedStruct--;
   // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
-  cout << "XA1" << endl;
+  BOOST_LOG_TRIVIAL(info) << "XA1" << endl;
   int status = hf_lseek(tid, recievedStruct.fd, recievedStruct.offset, recievedStruct.whence);
-cout << status << " XA2" << endl;
+BOOST_LOG_TRIVIAL(info) << status << " XA2" << endl;
   FS_s_lseek_fileT responseStruct;
 
   responseStruct.command = FILE_LSEEK_RES;
@@ -285,62 +286,62 @@ void* threadworker(void *arg)
     rw = read(sockfd, buffer, BUFFER_SIZE);
 
     int command = (int)buffer[0] - 48;
-    cout << "Request : >" << buffer << "<" <<endl;
+    BOOST_LOG_TRIVIAL(info) << "Request : >" << buffer << "<" <<endl;
     buffer++;
 
     switch (command) {
       case FILE_OPEN_REQ:
       {
-        cout << "command FILE_OPEN_REQ received" << endl;
+        BOOST_LOG_TRIVIAL(info) << "command FILE_OPEN_REQ received" << endl;
         handleOpenFile(sockfd, buffer);
         break;
       }
       case FILE_CLOSE_REQ:
       {
-        cout << "command FILE_CLOSE_REQ received" << endl;
+        BOOST_LOG_TRIVIAL(info) << "command FILE_CLOSE_REQ received" << endl;
         handleCloseFile(sockfd, buffer);
         break;
       }
       case FILE_READ_REQ:
       {
-        cout << "command FILE_READ_REQ received" << endl;
+        BOOST_LOG_TRIVIAL(info) << "command FILE_READ_REQ received" << endl;
         handleReadFile(sockfd, buffer);
         break;
       }
       case FILE_WRITE_REQ:
       {
-        cout << "command FILE_WRITE_REQ received" << endl;
+        BOOST_LOG_TRIVIAL(info) << "command FILE_WRITE_REQ received" << endl;
         handleWriteFile(sockfd, buffer);
         break;
       }
       case FILE_STAT_REQ:
       {
-        cout << "command FILE_STAT_REQ received" << endl;
+        BOOST_LOG_TRIVIAL(info) << "command FILE_STAT_REQ received" << endl;
         // handleStatFile(sockfd, buffer);
         break;
       }
       case FILE_LOCK_REQ:
       {
-        cout << "command FILE_LOCK_REQ received" << endl;
+        BOOST_LOG_TRIVIAL(info) << "command FILE_LOCK_REQ received" << endl;
         handleLockFile(sockfd, buffer);
         break;
       }
       case FILE_LSEEK_REQ:
       {
-        cout << "command FILE_LSEEK_REQ received" << endl;
+        BOOST_LOG_TRIVIAL(info) << "command FILE_LSEEK_REQ received" << endl;
         handleLseekFile(sockfd, buffer);
         break;
       }
       case CLOSE_SRV_REQ:
       {
-        cout << endl << "command CLOSE_SRV_REQ received" << endl;
+        BOOST_LOG_TRIVIAL(info) << endl << "command CLOSE_SRV_REQ received" << endl;
         closeServer = true;
         break;
       }
       default:
       {
-        cout << "unknown command received!!!" << endl;
-        cout << "closing server!!!" << endl;
+        BOOST_LOG_TRIVIAL(info) << "unknown command received!!!" << endl;
+        BOOST_LOG_TRIVIAL(info) << "closing server!!!" << endl;
         closeServer = true;
       }
     }

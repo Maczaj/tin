@@ -5,13 +5,13 @@
 
 using namespace std;
 
-
 int main(int argc, char *argv[]){
-  cout << "Server is running...." << endl;
+
   if (argc < 2) {
-    cout << "Error: no port provided\n";
+     BOOST_LOG_TRIVIAL(fatal) << "Error: no port provided\n";
     exit(-1);
   }
+  cout << "Server is running...." << endl;
   start(argv);
   cout << endl;
   return 0;

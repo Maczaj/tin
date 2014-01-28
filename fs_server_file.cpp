@@ -25,7 +25,7 @@ int hf_open(int pid, string name, int flags)
         {
           if (iter->listLock.size() != 0)
           {
-            cout << "CREATE error caused by:file exist and once of locks ENABLE\n";
+            BOOST_LOG_TRIVIAL(info) << "CREATE error caused by:file exist and once of locks ENABLE\n";
             lock_mutex.unlock();
             return -1;
           }
@@ -42,7 +42,7 @@ int hf_open(int pid, string name, int flags)
       file.name = name;
       file.listStream.push_back(streamStructure);
       fileList.push_back(file);
-      cout << "File opened with flag: CREATE\t FD: "<<file.descriptor<<endl;
+      BOOST_LOG_TRIVIAL(info) << "File opened with flag: CREATE\t FD: "<<file.descriptor<<endl;
 
     lock_mutex.unlock();
     return file.descriptor;
@@ -55,7 +55,7 @@ int hf_open(int pid, string name, int flags)
 
     if(!streamStructure.stream.is_open())
     {
-      cout<< "File to read does not exist\n";
+      BOOST_LOG_TRIVIAL(info)<< "File to read does not exist\n";
       return NO_SUCH_FILE_ERROR;
     }
 
@@ -64,7 +64,7 @@ int hf_open(int pid, string name, int flags)
         if (iter->name == name)
         {
           iter->listStream.push_back(streamStructure);
-          cout << "File opened with flag: READ FD: "<<iter->descriptor<<endl;
+          BOOST_LOG_TRIVIAL(info) << "File opened with flag: READ FD: "<<iter->descriptor<<endl;
           return iter->descriptor;
         }
     }
@@ -81,7 +81,7 @@ int hf_open(int pid, string name, int flags)
         if (iter->name == name)
         {
           iter->listStream.push_back(streamStructure);
-          cout << "File opened with flag: WRITE\n";
+          BOOST_LOG_TRIVIAL(info) << "File opened with flag: WRITE\n";
           lock_mutex.unlock();
           return iter->descriptor;
 
@@ -109,7 +109,7 @@ int hf_open(int pid, string name, int flags)
         if (iter->name == name)
         {
           iter->listStream.push_back(streamStructure);
-          cout << "File opened with flags: READ and WRITE\n";
+          BOOST_LOG_TRIVIAL(info) << "File opened with flags: READ and WRITE\n";
           lock_mutex.unlock();
           return iter->descriptor;
 
@@ -136,7 +136,7 @@ int hf_open(int pid, string name, int flags)
         if (iter->name == name)
         {
           iter->listStream.push_back(streamStructure);
-          cout << "File opened with flags: APPEND\n";
+          BOOST_LOG_TRIVIAL(info) << "File opened with flags: APPEND\n";
           lock_mutex.unlock();
           return iter->descriptor;
 
@@ -154,7 +154,7 @@ int hf_open(int pid, string name, int flags)
   }
   else
   {
-    cout<< "Bad flag";
+    BOOST_LOG_TRIVIAL(info)<< "Bad flag";
     lock_mutex.unlock();
     return -1;
   }
@@ -174,24 +174,24 @@ int hf_close(int pid, int fd)
         {
           if (!iterStream->stream.is_open())
           {
-            cout << "Stream already closed"<<endl;
+            BOOST_LOG_TRIVIAL(info) << "Stream already closed"<<endl;
             return -1;
           }
           iterStream->stream.close();
           iter->listStream.erase(iterStream);
-          cout <<"Stream closed for PID: " <<pid <<" and FILE: "<<fd <<endl;
+          BOOST_LOG_TRIVIAL(info) <<"Stream closed for PID: " <<pid <<" and FILE: "<<fd <<endl;
           fs_lock(pid, fd, UNLOCK);
           return 0;
         }
       }
 
-      cout <<  "File STREAM does not exist for this user"<<endl;
+      BOOST_LOG_TRIVIAL(info) <<  "File STREAM does not exist for this user"<<endl;
       return -2;
 
 
     }
   }
-  cout << "File does not exist"<<endl;
+  BOOST_LOG_TRIVIAL(info) << "File does not exist"<<endl;
   return NO_SUCH_FILE_ERROR;
 }
 
@@ -207,7 +207,7 @@ int hf_write(int pid, int fd , char * buf , size_t len)
         {
           if (iterLock->lockPID != pid)
           {
-            cout << "WRITE error caused by:once of locks ENABLE\n";
+            BOOST_LOG_TRIVIAL(info) << "WRITE error caused by:once of locks ENABLE\n";
             lock_mutex.unlock();
             return -1;
           }
@@ -215,7 +215,7 @@ int hf_write(int pid, int fd , char * buf , size_t len)
           {
             if (iterLock->lockMode == READ_LOCK)
             {
-              cout << "WRITE error caused by:READ_LOCK ENABLE\n";
+              BOOST_LOG_TRIVIAL(info) << "WRITE error caused by:READ_LOCK ENABLE\n";
               lock_mutex.unlock();
               return NO_LOCK_ERROR;
             }
@@ -226,7 +226,7 @@ int hf_write(int pid, int fd , char * buf , size_t len)
                 if (iterStream->PID == pid)
                 {
                   iterStream->stream.write(buf, len);
-                  cout << "Wrote to file with descriptor: " <<fd <<" and PID: "<<pid <<endl;
+                  BOOST_LOG_TRIVIAL(info) << "Wrote to file with descriptor: " <<fd <<" and PID: "<<pid <<endl;
                   lock_mutex.unlock();
                   return 0;
                 }
@@ -239,12 +239,12 @@ int hf_write(int pid, int fd , char * buf , size_t len)
       }
     }
   if (iter == fileList.end()){
-    cout << "File not found.\n";
+    BOOST_LOG_TRIVIAL(info) << "File not found.\n";
     lock_mutex.unlock();
     return NO_SUCH_FILE_ERROR;
   }
 
-  cout << "Missing WRITE_LOCK\n";
+  BOOST_LOG_TRIVIAL(info) << "Missing WRITE_LOCK\n";
   lock_mutex.unlock();
 
   return NO_LOCK_ERROR;
@@ -262,7 +262,7 @@ int hf_read(int pid, int fd , char * buf , size_t len)
         {
           // if ()
           // {
-          //   cout << "READ error caused by:WRITE_LOCK ENABLE PID: "<<pid<<endl;;
+          //   BOOST_LOG_TRIVIAL(info) << "READ error caused by:WRITE_LOCK ENABLE PID: "<<pid<<endl;;
           //   lock_mutex.unlock();
           //   return NO_LOCK_ERROR;
           // }
@@ -276,7 +276,7 @@ int hf_read(int pid, int fd , char * buf , size_t len)
                 if (iterStream->PID == pid)
                 {
                           iterStream->stream.read (buf,len);
-                  cout << "Read file with descriptor: " <<fd <<" and PID: "<<pid <<endl;
+                  BOOST_LOG_TRIVIAL(info) << "Read file with descriptor: " <<fd <<" and PID: "<<pid <<endl;
                   lock_mutex.unlock();
                   return 0;
                 }
@@ -290,11 +290,11 @@ int hf_read(int pid, int fd , char * buf , size_t len)
       }
     }
   if (iter == fileList.end()){
-    cout << "File not found.\n";
+    BOOST_LOG_TRIVIAL(info) << "File not found.\n";
     lock_mutex.unlock();
     return NO_SUCH_FILE_ERROR;
   }
-  cout << "Missing READ_LOCK\n";
+  BOOST_LOG_TRIVIAL(info) << "Missing READ_LOCK\n";
   lock_mutex.unlock();
   return NO_LOCK_ERROR;
 }
@@ -318,14 +318,14 @@ int hf_stat(char * fn, struct stat* buff)
     }
        else {
 
-          cout<<"fstat() returned:\n";
-          cout <<"Mode:\t\t\t"<<buff->st_mode <<endl;
-            cout <<"Size:\t\t\t"<<buff->st_size <<endl;
-            cout <<"Block size:\t\t"<<buff->st_blksize <<endl;
-            cout <<"Allocated blocks:\t"<<(int) buff->st_blocks <<endl;
-            cout <<"Last access:\t\t"<<ctime(&buff->st_atime);
-      cout <<"Last modification:\t"<<ctime(&buff->st_mtime);
-      cout <<"Last status change:\t"<<ctime(&buff->st_ctime);
+          BOOST_LOG_TRIVIAL(info)<<"fstat() returned:\n";
+          BOOST_LOG_TRIVIAL(info) <<"Mode:\t\t\t"<<buff->st_mode <<endl;
+            BOOST_LOG_TRIVIAL(info) <<"Size:\t\t\t"<<buff->st_size <<endl;
+            BOOST_LOG_TRIVIAL(info) <<"Block size:\t\t"<<buff->st_blksize <<endl;
+            BOOST_LOG_TRIVIAL(info) <<"Allocated blocks:\t"<<(int) buff->st_blocks <<endl;
+            BOOST_LOG_TRIVIAL(info) <<"Last access:\t\t"<<ctime(&buff->st_atime);
+      BOOST_LOG_TRIVIAL(info) <<"Last modification:\t"<<ctime(&buff->st_mtime);
+      BOOST_LOG_TRIVIAL(info) <<"Last status change:\t"<<ctime(&buff->st_ctime);
     }
 
       close(fd);
@@ -352,27 +352,27 @@ int hf_lseek(int pid, int fd , long offset , int whence)
             {
               if (offset < 0)
               {
-                cout <<"Wrong offset value";
+                BOOST_LOG_TRIVIAL(info) <<"Wrong offset value";
                 return -1;
               }
               iterStream->stream.seekg(offset,ios_base::beg);
-              cout << "Cursor set on pozistion: " <<iterStream->stream.tellg()    <<endl;
+              BOOST_LOG_TRIVIAL(info) << "Cursor set on pozistion: " <<iterStream->stream.tellg()    <<endl;
 
             }
             else if(whence == SEEK_CURRENT)
             {
               iterStream->stream.seekg(offset,ios_base::cur);
-              cout << "Cursor set on pozistion: " <<iterStream->stream.tellg() <<endl;
+              BOOST_LOG_TRIVIAL(info) << "Cursor set on pozistion: " <<iterStream->stream.tellg() <<endl;
             }
             else if(whence == SEEK_END_FILE)
             {
               if (offset > 0)
               {
-                cout <<"Wrong offset value";
+                BOOST_LOG_TRIVIAL(info) <<"Wrong offset value";
                 return -1;
               }
               iterStream->stream.seekg(offset,ios_base::end);
-              cout << "Cursor set on pozistion: " <<iterStream->stream.tellg() <<endl;
+              BOOST_LOG_TRIVIAL(info) << "Cursor set on pozistion: " <<iterStream->stream.tellg() <<endl;
             }
           }
           else
@@ -381,26 +381,26 @@ int hf_lseek(int pid, int fd , long offset , int whence)
             {
               if (offset < 0)
               {
-                cout <<"Wrong offset value";
+                BOOST_LOG_TRIVIAL(info) <<"Wrong offset value";
                 return -1;
               }
               iterStream->stream.seekp(offset,ios_base::beg);
-              cout << "Cursor set on pozistion: " <<iterStream->stream.tellp() <<endl;
+              BOOST_LOG_TRIVIAL(info) << "Cursor set on pozistion: " <<iterStream->stream.tellp() <<endl;
             }
             else if(whence == SEEK_CURRENT)
             {
               iterStream->stream.seekp(offset,ios_base::cur);
-              cout << "Cursor set on pozistion: " <<iterStream->stream.tellp() <<endl;
+              BOOST_LOG_TRIVIAL(info) << "Cursor set on pozistion: " <<iterStream->stream.tellp() <<endl;
             }
             else if(whence == SEEK_END_FILE)
             {
               if (offset > 0)
               {
-                cout <<"Wrong offset value";
+                BOOST_LOG_TRIVIAL(info) <<"Wrong offset value";
                 return -1;
               }
               iterStream->stream.seekp(offset,ios_base::end);
-              cout << "Cursor set on pozistion: " <<iterStream->stream.tellp() <<endl;
+              BOOST_LOG_TRIVIAL(info) << "Cursor set on pozistion: " <<iterStream->stream.tellp() <<endl;
             }
           }
           break;
@@ -428,7 +428,7 @@ int fs_lock(int pid, int fd , int mode)
           if (iterLock->lockPID == pid)
           {
             iter->listLock.erase(iterLock);
-            cout << "File unlocked for PID:" <<pid <<endl;
+            BOOST_LOG_TRIVIAL(info) << "File unlocked for PID:" <<pid <<endl;
             break;
           }
         }
@@ -446,7 +446,7 @@ int fs_lock(int pid, int fd , int mode)
         {
           if (iterLock->lockMode == WRITE_LOCK)
           {
-            cout << "READ_LOCK error caused by:WRITE LOCK ENABLE\n";
+            BOOST_LOG_TRIVIAL(info) << "READ_LOCK error caused by:WRITE LOCK ENABLE\n";
             lock_mutex.unlock();
             return LOCKING_NOT_POSSIBLE_ERROR;
           }
@@ -463,7 +463,7 @@ int fs_lock(int pid, int fd , int mode)
 
         if (temp)
         {
-          cout << "READ_LOCK enable for PID: "<<pid<<endl;
+          BOOST_LOG_TRIVIAL(info) << "READ_LOCK enable for PID: "<<pid<<endl;
           lock_mutex.unlock();
           return 0;
         }
@@ -473,7 +473,7 @@ int fs_lock(int pid, int fd , int mode)
           lock.lockMode = READ_LOCK;
           lock.lockPID = pid;
           iter->listLock.push_back(lock);
-          cout << "READ_LOCK enable for PID: "<<pid<<endl;
+          BOOST_LOG_TRIVIAL(info) << "READ_LOCK enable for PID: "<<pid<<endl;
           lock_mutex.unlock();
           return 0;
         }
@@ -489,7 +489,7 @@ int fs_lock(int pid, int fd , int mode)
       {
         if (iter->listLock.size() != 0)
         {
-          cout << "WRITE_LOCK error caused by: another lock ENABLE\n";
+          BOOST_LOG_TRIVIAL(info) << "WRITE_LOCK error caused by: another lock ENABLE\n";
           lock_mutex.unlock();
           return LOCKING_NOT_POSSIBLE_ERROR;
         }
@@ -499,7 +499,7 @@ int fs_lock(int pid, int fd , int mode)
           lock.lockMode = WRITE_LOCK;
           lock.lockPID = pid;
           iter->listLock.push_back(lock);
-          cout << "WRITE_LOCK enable for PID: "<<pid<<endl;
+          BOOST_LOG_TRIVIAL(info) << "WRITE_LOCK enable for PID: "<<pid<<endl;
           lock_mutex.unlock();
           return 0;
         }

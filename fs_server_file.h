@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <cstdio>
 #include <time.h>
+#include <boost/log/trivial.hpp>
+#include <boost/log/utility/setup/file.hpp>
 
 #define SEEK_BEGIN 0
 #define SEEK_CURRENT 1
