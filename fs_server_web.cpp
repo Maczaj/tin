@@ -5,7 +5,6 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <cstdint> //do rzutowania na intptr_t
 
 #include <sstream>
 
@@ -21,7 +20,7 @@
 
 using namespace std;
 
-pthread_t threadid[NTHREADS]; // Thread pool
+pthread_t threadid[NTHREADS];
 pthread_mutex_t lockTid;
 int tid = 0;
 
@@ -34,9 +33,6 @@ int handleOpenFile(int sockfd, char* recievedSerializedStruct) {
     inputArchive >> recievedStruct;
   }
   BOOST_LOG_TRIVIAL(info) << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
-  //printf("New message received: %s", recievedSerializedStruct);
-  // recievedSerializedStruct--;
-  // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
   BOOST_LOG_TRIVIAL(info) << "XA1" << endl;
   int fd = hf_open(tid, *(new string(recievedStruct.name)), recievedStruct.flags);
@@ -59,7 +55,7 @@ BOOST_LOG_TRIVIAL(info) << fd << " XA2" << endl;
     perror("Error writing to socket, exiting thread");
     pthread_exit(0);
   }
-  // return ok;
+  return 0;
 }
 
 int handleWriteFile(int sockfd, char* recievedSerializedStruct) {
@@ -71,12 +67,8 @@ int handleWriteFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  // std::BOOST_LOG_TRIVIAL(info) << "\nwritefile >>> " << recievedStruct.name << " " << recievedStruct.flags << std::endl;
-  //printf("New message received: %s", recievedSerializedStruct);
-  // recievedSerializedStruct--;
-  // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
-  BOOST_LOG_TRIVIAL(info) << recievedStruct.fd << " ." <</* (char *)recievedStruct.data << */". " << recievedStruct.len << endl;
+  BOOST_LOG_TRIVIAL(info) << recievedStruct.fd << ". " << recievedStruct.len << endl;
   int status = hf_write(tid, recievedStruct.fd, (char *)recievedStruct.data, recievedStruct.len);
 
   delete [] (unsigned char *)recievedStruct.data;
@@ -101,7 +93,7 @@ int handleWriteFile(int sockfd, char* recievedSerializedStruct) {
     perror("Error writing to socket, exiting thread");
     pthread_exit(0);
   }
-  // return ok;
+  return 0;
 }
 
 int handleLockFile(int sockfd, char* recievedSerializedStruct) {
@@ -112,13 +104,8 @@ int handleLockFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  // BOOST_LOG_TRIVIAL(info) << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
-  //printf("New message received: %s", recievedSerializedStruct);
-  // recievedSerializedStruct--;
-  // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
   BOOST_LOG_TRIVIAL(info) << "XA1" << endl;
-  // int fd = hf_open(tid, *(new string(recievedStruct.name)), recievedStruct.flags);
   int status = fs_lock(tid, recievedStruct.fd , recievedStruct.lock_type);
 BOOST_LOG_TRIVIAL(info) << status << " XA2" << endl;
   FS_s_lock_fileT responseStruct;
@@ -139,7 +126,7 @@ BOOST_LOG_TRIVIAL(info) << status << " XA2" << endl;
     perror("Error writing to socket, exiting thread");
     pthread_exit(0);
   }
-  // return ok;
+  return 0;
 }
 
 int handleCloseFile(int sockfd, char* recievedSerializedStruct) {
@@ -150,13 +137,8 @@ int handleCloseFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  // BOOST_LOG_TRIVIAL(info) << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
-  //printf("New message received: %s", recievedSerializedStruct);
-  // recievedSerializedStruct--;
-  // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
   BOOST_LOG_TRIVIAL(info) << "XA1" << endl;
-  // int fd = hf_open(tid, *(new string(recievedStruct.name)), recievedStruct.flags);
   int status = hf_close(tid, recievedStruct.fd);
 BOOST_LOG_TRIVIAL(info) << status << " XA2" << endl;
   FS_s_close_fileT responseStruct;
@@ -177,7 +159,7 @@ BOOST_LOG_TRIVIAL(info) << status << " XA2" << endl;
     perror("Error writing to socket, exiting thread");
     pthread_exit(0);
   }
-  // return ok;
+  return 0;
 }
 
 int handleReadFile(int sockfd, char* recievedSerializedStruct) {
@@ -188,13 +170,8 @@ int handleReadFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  // BOOST_LOG_TRIVIAL(info) << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
-  //printf("New message received: %s", recievedSerializedStruct);
-  // recievedSerializedStruct--;
-  // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
   BOOST_LOG_TRIVIAL(info) << "XA1" << endl;
-  // int fd = hf_open(tid, *(new string(recievedStruct.name)), recievedStruct.flags);
 
   char* bufFile = new char [recievedStruct.len+1];
   memset(bufFile, 0, recievedStruct.len+1);
@@ -206,7 +183,7 @@ int handleReadFile(int sockfd, char* recievedSerializedStruct) {
   responseStruct.command = FILE_READ_RES;
   responseStruct.status = status;
   responseStruct.data = bufFile;
-  BOOST_LOG_TRIVIAL(info) << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << recievedStruct.len << ". ." << strlen(bufFile) << ". " << endl;
+  BOOST_LOG_TRIVIAL(info) << "XX" << recievedStruct.len << ". ." << strlen(bufFile) << ". " << endl;
   responseStruct.read_len = recievedStruct.len;
 
   std::stringstream outputStringStream;
@@ -234,10 +211,6 @@ int handleLseekFile(int sockfd, char* recievedSerializedStruct) {
     boost::archive::text_iarchive inputArchive(inputStringStream);
     inputArchive >> recievedStruct;
   }
-  // BOOST_LOG_TRIVIAL(info) << "\nopenfile >>> " << recievedStruct.name << " " << recievedStruct.flags << endl;
-  //printf("New message received: %s", recievedSerializedStruct);
-  // recievedSerializedStruct--;
-  // bzero(recievedSerializedStruct, BUFFER_SIZE);
 
   BOOST_LOG_TRIVIAL(info) << "XA1" << endl;
   int status = hf_lseek(tid, recievedStruct.fd, recievedStruct.offset, recievedStruct.whence);
@@ -260,7 +233,7 @@ BOOST_LOG_TRIVIAL(info) << status << " XA2" << endl;
     perror("Error writing to socket, exiting thread");
     pthread_exit(0);
   }
-  // return ok;
+  return 0;
 }
 
 void* threadworker(void *arg)
@@ -271,7 +244,6 @@ void* threadworker(void *arg)
   sockfd = (int) arg; // Getting sockfd from void arg passed in
   bool closeServer = false;
 
-  // buffer = (char *)malloc(BUFFER_SIZE);
   buffer = new char [BUFFER_SIZE];
   bzero(buffer, BUFFER_SIZE);
 
@@ -368,34 +340,21 @@ void* threadworker(void *arg)
 int start(char *argv[])
 {
 
-  /* Variable declarations */
+  int serv_sockfd, new_sockfd;
+  struct addrinfo flags;
+  struct addrinfo *host_info;
 
-  int serv_sockfd, new_sockfd; //Socket identifiers for server and incoming clients
-  struct addrinfo flags; // Params used to establish listening socket
-  struct addrinfo *host_info; // Resultset for localhost address info, set by getaddrinfo()
+  socklen_t addr_size;
 
-  socklen_t addr_size; // Client address size since we use sockaddr_storage struct to store
-                       // client info coming in, not using addrinfo as done for host (local)
-                       // by calling getaddrinfo for resolution, which stores results in
-                       // the more convenient addrinfo struct
+  struct sockaddr_storage client;
 
-  struct sockaddr_storage client; // Sockaddr storage struct is larger than sockaddr_in,
-                                  // can be used both for IPv4 and IPv6
-
-  pthread_attr_t attr; // Thread attribute
-  int i; // Thread iterator
-
-  /* Start of main program */
-
-  // if (argc < 2) {
-  //   fprintf(stderr,"Error: no port provided\n");
-  //   exit(-1);
-  // }
+  pthread_attr_t attr;
+  int i;
 
   memset(&flags, 0, sizeof(flags));
-  flags.ai_family = AF_UNSPEC; // Use IPv4 or IPv6, whichever
-  flags.ai_socktype = SOCK_STREAM; // TCP
-  flags.ai_flags = AI_PASSIVE; // Set address for me
+  flags.ai_family = AF_UNSPEC;
+  flags.ai_socktype = SOCK_STREAM;
+  flags.ai_flags = AI_PASSIVE;
 
   if (getaddrinfo(NULL, argv[1], &flags, &host_info) < 0)
   {
@@ -417,24 +376,20 @@ int start(char *argv[])
     exit(-1);
   }
 
-  freeaddrinfo(host_info); // Don't need this struct anymore
+  freeaddrinfo(host_info);
 
-  pthread_attr_init(&attr); // Creating thread attributes
-  pthread_attr_setschedpolicy(&attr, SCHED_FIFO); // FIFO scheduling for threads
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED); // Don't want threads (particualrly main)
-                                                               // waiting on each other
+  pthread_attr_init(&attr);
+  pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-
-  listen(serv_sockfd, QUEUE_SIZE); // Pass in socket file descriptor and the size of the backlog queue
-                                   // (how many pending connections can be in queue while another request
-                                   // is handled)
+  listen(serv_sockfd, QUEUE_SIZE);
 
   addr_size = sizeof(client);
   i = 0;
 
-  while (1)
+  while (2)
   {
-    if (i == NTHREADS) // So that we don't access a thread out of bounds of the thread pool
+    if (i == NTHREADS)
     {
       i = 0;
     }
@@ -448,7 +403,7 @@ int start(char *argv[])
     }
     printf("eh\n");
     pthread_create(&threadid[i++], &attr, &threadworker, (void *) new_sockfd);
-    sleep(0); // Giving threads some CPU time
+    sleep(0);
   }
 
   return 0;

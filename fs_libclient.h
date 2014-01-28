@@ -1,17 +1,5 @@
-/***
-
-
-TODO: awesome comment
-
-
-
-****/
 #include <fstream>
 //============= STALE ===============================//
-
-// #define CREATE fstream::in | fstream::out | fstream::app
-// #define READ fstream::in | fstream::app
-// #define WRITE fstream::out | fstream::app
 
 #define READ_LOCK 0
 #define WRITE_LOCK 1
@@ -87,7 +75,5 @@ założenie blokady na pliku. W przypadku powodzenia zwróci 0. Niepowodzenie wy
 -próba założenia blokady READ jeśli jest założona blokada WRITE,
 -próba założenia blokady WRITE jeśli jest już założona inna blokada;
 i będzie sygnalizowane poprzez zwrócenie ujemnej wartości. Informacja o założonych blokadach będzie przechowywana w strukturze opisującej dany plik
-
-TODO: okreslic mozliwe wartosci mode
 **/
 int fs_lock(int srvhndl , int fd , int mode);

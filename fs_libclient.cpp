@@ -1,4 +1,3 @@
-// #include <iostream>
 #include "fs_libclient.h"
 
 #include <sys/types.h>
@@ -40,8 +39,8 @@ int fs_open_server(char* adres_serwera){
   sockd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockd == -1)
   {
-    perror("socket"); // DEBUG
-    return 0;//-errno;
+    perror("socket");
+    return 0;
   }
   char * srvport = strstr(adres_serwera, ":") + 1;
 
@@ -57,8 +56,8 @@ int fs_open_server(char* adres_serwera){
   status = connect(sockd, (struct sockaddr*)&serv_name, sizeof(serv_name));
   if (status == -1)
   {
-    perror("connect"); // DEBUG
-    return -1;//-errno;
+    perror("connect");
+    return -1;
   }
   return sockd;
 }
@@ -134,7 +133,6 @@ int fs_open(int srvhndl, char *name, int flags){
   delete [] inputSerializedStruct;
 
   // unpack request struct
-// cout << "ASDFASDFDASFFADSFADSFADSFDAD " << response.fd;
   return response.fd;
 }
 
@@ -164,7 +162,7 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
     memset(bufPart, 0, packLength);
 
     memcpy(bufPart, ((char *)buf) + bytesSent, bytesToSend);
-    // cout << "bufPart >" << bufPart << "<" << endl;
+
     bufPart[bytesToSend] = '\0';
     requestStruct.data = bufPart;
 
@@ -178,8 +176,6 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
     char* bufferToSend =
         concatCommandAndSerializedStruct(outputStringStream.str().c_str(),
             requestStruct.command);
-
-    // cout << "bufferToSend >" << bufferToSend << "<" << endl;
 
     // send request
       cout << "HEJ TYYYYYYYYYYYYY: ." << bufferToSend << "." << endl;
@@ -206,7 +202,7 @@ int fs_write(int srvhndl , int fd , void * buf , size_t len){
     bytesSent += bytesToSend;
 
     status = response.status;
-    // cout << "XAXA " << bytesSent << " " << len << " " << response.status << endl;
+
     delete [] bufferToSend;
     bufferToSend = 0;
   }
@@ -380,7 +376,6 @@ int fs_close(int srvhndl, int fd){
   delete [] inputSerializedStruct;
 
   // unpack request struct
-// cout << "ASDFASDFDASFFADSFADSFADSFDAD " << response.fd;
   return response.status;
 }
 

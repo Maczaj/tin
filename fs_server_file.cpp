@@ -34,9 +34,7 @@ int hf_open(int pid, string name, int flags)
         }
       }
 
-
-
-        streamStructure.stream.open(streamStructure.name.c_str(), fstream::in | fstream::out | fstream::trunc);
+      streamStructure.stream.open(streamStructure.name.c_str(), fstream::in | fstream::out | fstream::trunc);
 
       file.descriptor = fileList.size() +1;
       file.name = name;
@@ -260,12 +258,6 @@ int hf_read(int pid, int fd , char * buf , size_t len)
       {
         for( list<Lock>::iterator iterLock=iter->listLock.begin(); iterLock != iter->listLock.end(); iterLock++ )
         {
-          // if ()
-          // {
-          //   BOOST_LOG_TRIVIAL(info) << "READ error caused by:WRITE_LOCK ENABLE PID: "<<pid<<endl;;
-          //   lock_mutex.unlock();
-          //   return NO_LOCK_ERROR;
-          // }
           if (iterLock->lockMode == READ_LOCK || iterLock->lockMode == WRITE_LOCK)
           {
             if (iterLock->lockPID == pid)
@@ -318,14 +310,14 @@ int hf_stat(char * fn, struct stat* buff)
     }
        else {
 
-          BOOST_LOG_TRIVIAL(info)<<"fstat() returned:\n";
-          BOOST_LOG_TRIVIAL(info) <<"Mode:\t\t\t"<<buff->st_mode <<endl;
-            BOOST_LOG_TRIVIAL(info) <<"Size:\t\t\t"<<buff->st_size <<endl;
-            BOOST_LOG_TRIVIAL(info) <<"Block size:\t\t"<<buff->st_blksize <<endl;
-            BOOST_LOG_TRIVIAL(info) <<"Allocated blocks:\t"<<(int) buff->st_blocks <<endl;
-            BOOST_LOG_TRIVIAL(info) <<"Last access:\t\t"<<ctime(&buff->st_atime);
-      BOOST_LOG_TRIVIAL(info) <<"Last modification:\t"<<ctime(&buff->st_mtime);
-      BOOST_LOG_TRIVIAL(info) <<"Last status change:\t"<<ctime(&buff->st_ctime);
+        BOOST_LOG_TRIVIAL(info)<<"fstat() returned:\n";
+        BOOST_LOG_TRIVIAL(info) <<"Mode:\t\t\t"<<buff->st_mode <<endl;
+        BOOST_LOG_TRIVIAL(info) <<"Size:\t\t\t"<<buff->st_size <<endl;
+        BOOST_LOG_TRIVIAL(info) <<"Block size:\t\t"<<buff->st_blksize <<endl;
+        BOOST_LOG_TRIVIAL(info) <<"Allocated blocks:\t"<<(int) buff->st_blocks <<endl;
+        BOOST_LOG_TRIVIAL(info) <<"Last access:\t\t"<<ctime(&buff->st_atime);
+        BOOST_LOG_TRIVIAL(info) <<"Last modification:\t"<<ctime(&buff->st_mtime);
+        BOOST_LOG_TRIVIAL(info) <<"Last status change:\t"<<ctime(&buff->st_ctime);
     }
 
       close(fd);

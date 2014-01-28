@@ -2,13 +2,11 @@
 #define FS_SERVER 1
 
 #include <sys/stat.h>
-// #include <string>
 #include <string.h>
 
 #ifndef BOOST_ARCHIVE_TEXT_IARCHIVE_HPP
 #include <boost/archive/text_oarchive.hpp>
 #endif
-// #include <boost/archive/text_iarchive.hpp>
 
 //==================== REQUESTS ===========================//
 enum FS_cmdT {
@@ -86,7 +84,6 @@ typedef struct FS_c_write_fileT {
     for (int index = 0; index < len; ++index){
       ar & ((unsigned char *)data)[index];
     }
-    // std::cout << "save>>>>>>>>" << strlen((char *)data) << "<<<<<<<<" << std::endl;
   }
   template<class Archive>
   void load(Archive & ar, const unsigned int version)
@@ -97,7 +94,6 @@ typedef struct FS_c_write_fileT {
     data = new unsigned char[len+1];
     for (int index = 0; index < len; ++index)
       ar & ((unsigned char *)data)[index];
-    // std::cout << "load>>>>>>>>" << strlen((char *)data) << "<<<<<<<<" << std::endl;
     ((unsigned char *)data)[len] = 0;
   }
   BOOST_SERIALIZATION_SPLIT_MEMBER()
